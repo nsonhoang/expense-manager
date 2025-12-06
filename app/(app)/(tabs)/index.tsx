@@ -7,11 +7,12 @@ import { Color, TextSize } from "@/constants/GlobalValue";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-interface FormInput {
+export interface FormInput {
   date: Date;
-  note: string;
+  note?: string;
   money: number;
   category: string;
+  isExpense: boolean;
 }
 
 export default function HomeScreen() {
@@ -20,6 +21,7 @@ export default function HomeScreen() {
   const [money, setMoney] = useState(0);
   const [category, setCateGory] = useState("");
   const [activeTab, setActiveTab] = useState("expense"); // 'expense' (Chi tiêu) hoặc 'income' (Thu nhập)
+  // const [isExpense, setIsExpense] = useState(false);
 
   const handleChooseTabExpense = () => {
     setActiveTab("expense");
@@ -30,25 +32,37 @@ export default function HomeScreen() {
     setActiveTab("income");
   };
 
-  const handleAddExpense = ({ date, note, money, category }: FormInput) => {
+  const handleAddExpense = ({
+    date,
+    note,
+    money,
+    category,
+    isExpense,
+  }: FormInput) => {
     if (money === 0) {
       Alert.alert("Bạn chưa nhập số tiền");
     }
     if (category === "") {
       Alert.alert("Bạn chưa chọn danh mục");
     }
-    console.log(date, note, money, category);
+    console.log(date, note, money, category, (isExpense = true));
     setMoney(0);
     setNote("");
   };
-  const handleAddIncome = ({ date, note, money, category }: FormInput) => {
+  const handleAddIncome = ({
+    date,
+    note,
+    money,
+    category,
+    isExpense,
+  }: FormInput) => {
     if (money === 0) {
       Alert.alert("Bạn chưa nhập số tiền");
     }
     if (category === "") {
       Alert.alert("Bạn chưa chọn danh mục");
     }
-    console.log(date, note, money, category);
+    console.log(date, note, money, category, (isExpense = false));
     setMoney(0);
     setNote("");
   };
@@ -101,7 +115,13 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.buttonConfirm}
                 onPress={() =>
-                  handleAddExpense({ date, note, money, category })
+                  handleAddExpense({
+                    date,
+                    note,
+                    money,
+                    category,
+                    isExpense: true,
+                  })
                 }
               >
                 <Text style={styles.textButton}>Nhập khoản tiền chi</Text>
@@ -120,7 +140,15 @@ export default function HomeScreen() {
             <View>
               <TouchableOpacity
                 style={styles.buttonConfirm}
-                onPress={() => handleAddIncome({ date, note, money, category })}
+                onPress={() =>
+                  handleAddIncome({
+                    date,
+                    note,
+                    money,
+                    category,
+                    isExpense: false,
+                  })
+                }
               >
                 <Text style={styles.textButton}>Nhập khoản tiền Thu</Text>
               </TouchableOpacity>

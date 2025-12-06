@@ -1,0 +1,114 @@
+import { FormInput } from "@/app/(app)/(tabs)";
+import { Color, TextSize } from "@/constants/GlobalValue";
+import { formatMoney } from "@/utils/formatMoney";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import RightAction from "./ReanimatedSwipeable";
+import EditTransactionModal from "./dialogEdit";
+
+interface ItemDetailMoneyProps {
+  item: FormInput;
+}
+
+function ItemDetailMoney({ item }: ItemDetailMoneyProps) {
+  const [visibleDialogEdit, setVisibleDialogEdit] = useState(false);
+
+  const handlerDelete = () => {
+    console.log("Xoa");
+  };
+  const handlerEdit = () => {
+    setVisibleDialogEdit(true);
+    console.log("Sua");
+  };
+  const HandlerSave = () => {
+    console.log("save");
+  };
+
+  const onClose = () => {
+    setVisibleDialogEdit(false);
+  };
+  return (
+    <ReanimatedSwipeable
+      containerStyle={styles.swipeContainer}
+      friction={2}
+      rightThreshold={40}
+      renderRightActions={(progress, drag) => (
+        <RightAction
+          drag={drag}
+          handlerDelete={handlerDelete}
+          handlerEdit={handlerEdit}
+        />
+      )}
+    >
+      <EditTransactionModal
+        onClose={onClose}
+        onSave={HandlerSave}
+        visible={visibleDialogEdit}
+        item={item}
+      />
+      <View style={styles.containerDetail}>
+        <MaterialCommunityIcons
+          name="cash-multiple"
+          size={30}
+          color={item.isExpense ? Color.PRIMARY_COLOR : "#d9534f"}
+        />
+        <View style={styles.detail}>
+          <Text style={styles.detailCategory}>{item.category}</Text>
+          <Text style={styles.detailNote}>{item.note}</Text>
+        </View>
+
+        <Text
+          style={[
+            styles.moneyItem,
+            item.isExpense ? styles.expense : styles.income,
+          ]}
+        >
+          {formatMoney(item.money)}
+        </Text>
+      </View>
+    </ReanimatedSwipeable>
+  );
+}
+
+const styles = StyleSheet.create({
+  swipeContainer: {
+    backgroundColor: "white", // Quan trọng để vuốt mượt
+  },
+  containerDetail: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: "#fff", // Nền trắng cho item chính
+  },
+  detail: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginLeft: 15,
+  },
+  detailCategory: {
+    fontSize: TextSize.TEXT_DEFAULT,
+  },
+  detailNote: {
+    color: "#cbcbcb",
+  },
+  moneyItem: {
+    fontSize: TextSize.TEXT_DEFAULT,
+    fontWeight: "800", // SỬA LỖI: Phải là string "800", không dùng số
+    color: "grey",
+  },
+  income: {
+    color: Color.PRIMARY_COLOR,
+  },
+  expense: {
+    color: "#d9534f",
+  },
+  // Style cho phần Action
+});
+
+export default ItemDetailMoney;
