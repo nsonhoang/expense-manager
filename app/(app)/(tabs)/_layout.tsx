@@ -25,6 +25,8 @@ export default function TabLayout() {
         options={{
           title: "Quản lí tài chính",
           headerShown: true,
+
+          headerShadowVisible: false,
           tabBarLabel: ({ focused, color }) =>
             focused ? <Text style={{ fontSize: 12, color }}>Ghi</Text> : null,
           tabBarIcon: ({ color, size, focused }) => (
