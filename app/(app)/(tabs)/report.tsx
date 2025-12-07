@@ -1,3 +1,4 @@
+import { mockExpenses, mockIncomes } from "@/constants/mockDataReport";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -19,29 +20,10 @@ const ReportScreen = () => {
     label: string;
     value: number;
     color: string;
-    percent: number;
+    percent?: number;
   };
 
-
-  // Fake data
-  const expensesRaw = [
-    { label: "Ăn uống", value: 100000, color: "#FF8A00" },
-    { label: "Y tế", value: 20000, color: "#6CF2B7" },
-    { label: "Di chuyển", value: 50000, color: "#4C8BFF" },
-    { label: "Giải trí", value: 30000, color: "#FF5A79" },
-    { label: "Mua sắm", value: 40000, color: "#9B6BFF" },  
-  ];
-
-  const incomesRaw = [
-    { label: "Lương", value: 900000, color: "#4FC3F7" },
-    { label: "Thưởng", value: 100000, color: "#7BD389" },
-    { label: "Freelance", value: 200000, color: "#FFD166" },
-    { label: "Kinh doanh", value: 150000, color: "#EF476F" },
-    { label: "Đầu tư", value: 100000, color: "#06D6A0" },
-    { label: "Cho thuê", value: 50000, color: "#8E44AD" },
-    { label: "Khác", value: 30000, color: "#118AB2" },
-  ];
-
+  // Tính phần trăm
   const calcPercent = (data: IncomeItem[]): IncomeItem[] => {
     const total = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -51,8 +33,8 @@ const ReportScreen = () => {
     }));
   };
 
-  const incomes = calcPercent(incomesRaw);
-  const expenses = calcPercent(expensesRaw) as ExpenseItem[];
+  const incomes = calcPercent(mockIncomes);
+  const expenses = calcPercent(mockExpenses) as ExpenseItem[];
 
 
   // dữ liệu hiển thị tuỳ theo tab
@@ -140,7 +122,7 @@ const ReportScreen = () => {
           innerRadius={30}
           textColor="white"
           textSize={12}
-          showText
+          showText={false}
           innerCircleColor="#fff"
           strokeWidth={0.2}
         />
@@ -155,7 +137,18 @@ const ReportScreen = () => {
             <View style={styles.itemLeft}>
               <Ionicons
                 name={
-                  item.label === "Ăn uống" ? "restaurant" : item.label === "Y tế" ? "medkit" : item.label === "Lương" ? "cash" : "arrow-up"
+                  item.label === "Ăn uống" ? "restaurant" : 
+                  item.label === "Y tế" ? "medkit" : 
+                  item.label === "Lương" ? "cash" : 
+                  item.label === "Thưởng" ? "trophy" :
+                  item.label === "Di chuyển" ? "car" :
+                  item.label === "Giải trí" ? "game-controller" :
+                  item.label === "Mua sắm" ? "cart" :
+                  item.label === "Freelance" ? "laptop" :
+                  item.label === "Kinh doanh" ? "briefcase" :
+                  item.label === "Đầu tư" ? "trending-up" :
+                  item.label === "Cho thuê" ? "home" :
+                  "arrow-up"
                 }
                 size={22}
                 color={item.color}
@@ -186,7 +179,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 40,
     alignItems: "center",
-    marginTop: 10,
   },
   monthCenter: { flexDirection: "row", alignItems: "center", gap: 5 },
   monthText: { fontSize: 18, fontWeight: "600", color: "#000" },
