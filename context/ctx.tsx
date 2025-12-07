@@ -1,80 +1,164 @@
-// ctx.tsx
-import { useStorageState } from "@/hooks/useStorageState";
-import { createContext, use, type PropsWithChildren } from "react";
+import {
+  FirebaseAuthTypes,
+  signOut as firebaseSignOut,
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithCredential,
+} from "@react-native-firebase/auth";
+import {
+  doc,
+  getDoc,
+  getFirestore,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "@react-native-firebase/firestore";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type PropsWithChildren,
+} from "react";
 
+// Định nghĩa các hàm và biến mà Context cung cấp
 type AuthContextType = {
-  signIn: (token: string) => void;
-  signOut: () => void;
-  session?: string | null;
+  user: FirebaseAuthTypes.User | null;
   isLoading: boolean;
+  signInWithGoogle: () => Promise<void>; // Hàm đăng nhập Google mới
+  signOut: () => void;
 };
 
 const AuthContext = createContext<AuthContextType>({
-  signIn: () => null,
+  user: null,
+  isLoading: true,
+  signInWithGoogle: async () => {},
   signOut: () => null,
-  session: null,
-  isLoading: false,
 });
 
-// Hook dùng trong app
 export function useSession() {
-  const value = use(AuthContext);
+  const value = useContext(AuthContext);
   if (!value) {
     throw new Error("useSession must be wrapped in a <SessionProvider />");
   }
   return value;
 }
 
-// Provider bao quanh toàn bộ app
 export function SessionProvider({ children }: PropsWithChildren) {
-  // "session" sẽ là token hoặc id user, tùy bạn muốn lưu gì
-  const [[isLoading, session], setSession] = useStorageState("session");
+  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const auth = getAuth();
+
+  // 1. Cấu hình Google Sign-in ngay khi App khởi động
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        "374246831148-tn23h9e1r27gs95m4mlmc2u9e4cou9ad.apps.googleusercontent.com", // Web Client ID của bạn
+    });
+  }, []);
+
+  // 2. Lắng nghe trạng thái đăng nhập từ Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (isLoading) setIsLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  const saveUserToFirestore = async (user: FirebaseAuthTypes.User) => {
+    if (!user?.uid) return;
+    const db = getFirestore();
+    // 1. Tạo tham chiếu (Modular style)
+    const userRef = doc(db, "User", user.uid);
+    try {
+      const userSnapshot = await getDoc(userRef);
+      if (!userSnapshot.exists()) {
+        // === TRƯỜNG HỢP: USER MỚI (Chưa có) ===
+        // Dùng setDoc để tạo mới
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          // Dùng serverTimestamp() (Hàm, không phải FieldValue...)
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+        });
+        console.log("Đã tạo User mới!");
+      } else {
+        await updateDoc(userRef, {
+          lastLogin: serverTimestamp(),
+          // Cập nhật thêm thông tin nếu muốn đồng bộ
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+        });
+        console.log("Đã cập nhật User cũ!");
+      }
+    } catch (error) {
+      console.log("lỗi " + error);
+    }
+  };
+  // 3. Hàm Đăng nhập Google (Logic chuyển từ LoginScreen vào đây)
+  const signInWithGoogle = async () => {
+    try {
+      // Reset trạng thái cũ để tránh lỗi "Sign-in in progress"
+      try {
+        await GoogleSignin.signOut();
+      } catch (e) {
+        // Bỏ qua lỗi nếu chưa đăng nhập
+      }
+
+      // Kiểm tra Play Services
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+
+      // Mở Popup đăng nhập
+      const signInResult = await GoogleSignin.signIn();
+
+      // Lấy Token (Hỗ trợ cả version cũ và mới)
+      let idToken = signInResult.data?.idToken;
+      // if (!idToken) {
+      //   idToken = signInResult.idToken;
+      // }
+
+      if (!idToken) {
+        throw new Error("No ID token found");
+      }
+
+      // Tạo Credential và Đăng nhập Firebase
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+      const userCredential = await signInWithCredential(auth, googleCredential);
+      // Không cần làm gì thêm, onAuthStateChanged ở trên sẽ tự bắt được user mới
+      await saveUserToFirestore(userCredential.user);
+    } catch (error) {
+      console.error("Lỗi đăng nhập Google trong Context:", error);
+      throw error; // Ném lỗi ra để màn hình Login hiển thị Alert
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await GoogleSignin.signOut(); // Đăng xuất Google
+      await firebaseSignOut(auth); // Đăng xuất Firebase
+    } catch (error) {
+      console.error("Lỗi đăng xuất:", error);
+    }
+  };
 
   return (
     <AuthContext.Provider
       value={{
-        signIn: (token: string) => {
-          // 👉 Ở đây bạn gọi Firebase login / API backend
-          // xong xuôi thì lưu token:
-          setSession(token);
-        },
-        signOut: () => {
-          setSession(null);
-        },
-        session,
+        user,
         isLoading,
+        signInWithGoogle,
+        signOut,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
-// dùng cho firebase
-// import { createContext, useEffect, useState } from "react";
-// import { onAuthStateChanged, User } from "firebase/auth";
-// import { auth } from "@/firebase";
-
-// export const AuthContext = createContext({
-//   user: null as User | null,
-//   loading: true,
-// });
-
-// export function AuthProvider({ children }) {
-//   const [user, setUser] = useState<User | null>(null);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-//       setUser(firebaseUser);
-//       setLoading(false);
-//     });
-
-//     return unsub;
-//   }, []);
-
-//   return (
-//     <AuthContext.Provider value={{ user, loading }}>
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// }

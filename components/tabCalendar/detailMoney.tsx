@@ -1,4 +1,5 @@
 import { FormInput } from "@/app/(app)/(tabs)";
+import { Transaction } from "@/app/(app)/(tabs)/calendar";
 import { Color } from "@/constants/GlobalValue";
 import { formatMoney } from "@/utils/formatMoney";
 import { groupTransactionsByDay } from "@/utils/getTransactionsByDate";
@@ -6,13 +7,13 @@ import { StyleSheet, Text, View } from "react-native";
 import ItemDetailMoney from "./itemDetailMoney";
 
 interface DetailMoneyProps {
-  ListData: FormInput[];
+  ListData: Transaction[];
   month: number;
   year: number;
 }
 export interface DayGroup {
   dateKey: string;
-  items: FormInput[];
+  items: Transaction[];
 }
 
 function DetailMoney({ ListData, month, year }: DetailMoneyProps) {

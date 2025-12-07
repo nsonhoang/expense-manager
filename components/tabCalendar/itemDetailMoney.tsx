@@ -1,29 +1,50 @@
-import { FormInput } from "@/app/(app)/(tabs)";
+import { Transaction } from "@/app/(app)/(tabs)/calendar";
 import { Color, TextSize } from "@/constants/GlobalValue";
+import { useSession } from "@/context/ctx";
 import { formatMoney } from "@/utils/formatMoney";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { deleteDoc, doc, getFirestore } from "@react-native-firebase/firestore";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import RightAction from "./ReanimatedSwipeable";
 import EditTransactionModal from "./dialogEdit";
 
 interface ItemDetailMoneyProps {
-  item: FormInput;
+  item: Transaction;
 }
 
 function ItemDetailMoney({ item }: ItemDetailMoneyProps) {
   const [visibleDialogEdit, setVisibleDialogEdit] = useState(false);
+  const { user } = useSession();
 
   const handlerDelete = () => {
-    console.log("Xoa");
+    Alert.alert("Xác nhận", "Bạn có chắc muốn xóa :)))", [
+      {
+        text: "Hủy",
+        style: "cancel", // nút xám + đóng alert
+      },
+      {
+        text: "Xác nhận",
+        onPress: confirmDelete,
+      },
+    ]);
+  };
+  const confirmDelete = async () => {
+    try {
+      if (!user) return;
+      const db = getFirestore();
+      const TransitionRef = doc(db, "User", user.uid, "Transactions", item.id);
+      await deleteDoc(TransitionRef);
+      console.log("Xóa thành công");
+    } catch (error) {
+      console.log("không xóa được: " + error);
+      Alert.alert("Lỗi");
+    }
   };
   const handlerEdit = () => {
     setVisibleDialogEdit(true);
     console.log("Sua");
-  };
-  const HandlerSave = () => {
-    console.log("save");
   };
 
   const onClose = () => {
@@ -44,7 +65,6 @@ function ItemDetailMoney({ item }: ItemDetailMoneyProps) {
     >
       <EditTransactionModal
         onClose={onClose}
-        onSave={HandlerSave}
         visible={visibleDialogEdit}
         item={item}
       />

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "374246831148",
+    "project_id": "project-expense-money",
+    "storage_bucket": "project-expense-money.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374246831148:android:b2ba1bfe4f5ec3daab4d89",
+        "android_client_info": {
+          "package_name": "com.hoangshpy.expensemanager"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "374246831148-e9toi8kcdl3nd23kvrl5jjfv1ivmu22q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hoangshpy.expensemanager",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "374246831148-tn23h9e1r27gs95m4mlmc2u9e4cou9ad.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDanxqw_AkX8U-H2GhhQIxD1Du8gQtke0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "374246831148-tn23h9e1r27gs95m4mlmc2u9e4cou9ad.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

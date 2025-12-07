@@ -1,7 +1,8 @@
+import { Transaction } from "@/app/(app)/(tabs)/calendar";
 import { Color } from "@/constants/GlobalValue";
-import { mockFormInputs } from "@/constants/mockValue";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 interface CalendarWithDotProps {
+  listData: Transaction[];
   selectDate: string;
   updateSelectDate: (selectDate: string) => void;
   month: number;
@@ -10,13 +11,14 @@ interface CalendarWithDotProps {
 }
 
 export default function CalendarWithDot({
+  listData,
   selectDate,
   updateSelectDate,
   month,
   updateMonth,
   year,
 }: CalendarWithDotProps) {
-  const listDate = mockFormInputs.reduce((acc, d): any => {
+  const listDate = listData.reduce((acc, d): any => {
     // Convert Date → "YYYY-MM-DD"
     const key = d.date.toISOString().split("T")[0];
     if (!acc[key]) {
@@ -37,13 +39,13 @@ export default function CalendarWithDot({
     finalMarkedDates[selectDate] = {
       ...finalMarkedDates[selectDate], // Giữ lại dots cũ
       selected: true,
-      selectedColor: Color.PRIMARY_COLOR, // Màu nền khi chọn
+      selectedColor: "#e0f7fa", // Màu nền khi chọn
     };
   } else {
     // Nếu ngày được chọn chưa có dot -> Tạo mới
     finalMarkedDates[selectDate] = {
       selected: true,
-      selectedColor: Color.PRIMARY_COLOR,
+      selectedColor: "#e0f7fa",
     };
   }
 
