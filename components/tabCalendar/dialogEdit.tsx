@@ -1,8 +1,11 @@
-import { FormInput } from "@/app/(app)/(tabs)";
+import { Transaction } from "@/app/(app)/(tabs)/calendar";
 import { Color, TextSize } from "@/constants/GlobalValue";
+import { useSession } from "@/context/ctx";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { doc, getFirestore, updateDoc } from "@react-native-firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -15,26 +18,23 @@ import {
 
 interface EditTransactionModalProps {
   visible: boolean;
-  item: FormInput | null; // Item đang được chọn để sửa
+  item: Transaction | null; // Item đang được chọn để sửa
   onClose: () => void;
-  onSave: (updatedItem: FormInput) => void;
 }
 
 export default function EditTransactionModal({
   visible,
   item,
   onClose,
-  onSave,
 }: EditTransactionModalProps) {
   // State lưu giá trị đang sửa
   const [moneyStr, setMoneyStr] = useState("");
   const [note, setNote] = useState("");
   const [category, setCategory] = useState("");
-
-  // Mỗi khi Modal hiện lên hoặc Item thay đổi -> Load dữ liệu cũ vào form
+  const { user } = useSession();
   useEffect(() => {
     if (item) {
-      setMoneyStr(item.money.toString()); // Lưu tạm dưới dạng string để dễ format
+      setMoneyStr(item.money.toString());
       setNote(item.note ?? "");
       setCategory(item.category);
     }
@@ -47,18 +47,40 @@ export default function EditTransactionModal({
   };
 
   // Hàm Lưu
-  const handleSave = () => {
-    if (!item) return;
+  const handleSave = async () => {
+    try {
+      if (!user) return;
+      if (!item?.id) return;
 
-    const updatedItem: FormInput = {
-      ...item, // Giữ nguyên các trường cũ (id, date, isExpense...)
-      money: parseInt(moneyStr, 10) || 0,
-      note: note,
-      category: category,
-    };
+      if (!item) return;
 
-    onSave(updatedItem);
-    onClose();
+      const updatedItem: Transaction = {
+        ...item, // Giữ nguyên các trường cũ (id, date, isExpense...)
+        money: parseInt(moneyStr, 10) || 0,
+        note: note,
+        category: category,
+      };
+      console.log(updatedItem);
+
+      const db = getFirestore();
+
+      const TransactionRef = doc(
+        db,
+        "User",
+        user.uid,
+        "Transactions",
+        item?.id
+      );
+      await updateDoc(TransactionRef, {
+        ...updatedItem,
+      });
+      console.log("Cập nhật thành công!");
+      onClose();
+      Alert.alert("Thông báo", "Đã cập nhật thành công.");
+    } catch (error) {
+      console.error("Lỗi cập nhật:", error);
+      Alert.alert("Lỗi", "Không thể cập nhật giao dịch này.");
+    }
   };
 
   // Hàm hiển thị tiền có dấu chấm

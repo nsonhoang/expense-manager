@@ -1,24 +1,89 @@
 import CalendarWithDot from "@/components/tabCalendar/CalendarWithDot";
 import DetailMoney from "@/components/tabCalendar/detailMoney";
 import { mockFormInputs } from "@/constants/mockValue";
+import { useSession } from "@/context/ctx";
 import { formatMoney } from "@/utils/formatMoney";
 import { getTransactionsByMonth } from "@/utils/getTransactionsByMonth";
-import { useMemo, useState } from "react";
+import {
+  collection,
+  FirebaseFirestoreTypes,
+  getFirestore,
+  onSnapshot,
+  orderBy,
+  query,
+} from "@react-native-firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
+export interface Transaction {
+  id: string;
+  date: Date;
+  note?: string;
+  money: number;
+  category: string;
+  isExpense: boolean;
+}
+
 export default function CalendarScreen() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const today = new Date().toISOString().split("T")[0];
   const [selected, setSelected] = useState(today);
-  //tiêu tiền tháng đó
-  // const [totalExpense, setTotalExpense] = useState(0);
-  // //tiền vào tháng đó
-  // const [totalIncome, setTotalIncome] = useState(0);
-  // //tổng tiền trong tháng đó
-  // const [total, setTotal] = useState(totalIncome - totalExpense);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
+  const { user } = useSession();
   // lấy danh sách giao dịch của tháng đó
-  const dataMonth = getTransactionsByMonth(mockFormInputs, month, year);
+
+  useEffect(() => {
+    if (!user) {
+      setTransactions([]);
+      setLoading(false);
+      return;
+    }
+    const db = getFirestore();
+    const transRef = collection(db, "User", user.uid, "Transactions");
+
+    // Sắp xếp theo ngày giảm dần
+    const q = query(transRef, orderBy("date", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const list: Transaction[] = [];
+
+        querySnapshot.forEach(
+          (doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
+            const data = doc.data();
+
+            // Firestore trả về Timestamp, cần convert sang Date
+            let dateObj = data.date.toDate();
+            console.log("ngayf" + dateObj);
+
+            list.push({
+              id: doc.id,
+              money: data.money || 0,
+              note: data.note || "",
+              category: data.category || "Khác",
+              isExpense: data.isExpense ?? true,
+              date: dateObj, // Dùng ngày thực tế từ DB
+            });
+          }
+        );
+
+        setTransactions(list); // Lưu dữ liệu thật vào State
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Lỗi lấy danh sách:", error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]); // Thêm dependency user
+  console.log("alo: " + transactions);
+
+  const dataMonth = getTransactionsByMonth(transactions, month, year);
 
   const { totalExpense, totalIncome, total } = useMemo(() => {
     let expense = 0;
@@ -53,6 +118,7 @@ export default function CalendarScreen() {
             setMonth(m);
             setYear(y);
           }}
+          listData={transactions}
         />
         <View style={styles.totalMoney}>
           {/* Thu nhập */}

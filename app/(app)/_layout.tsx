@@ -10,7 +10,7 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const { session, isLoading } = useSession();
+  const { user, isLoading } = useSession();
 
   if (isLoading) {
     // Loading state lần đầu mở app (đang load từ SecureStore)
@@ -25,12 +25,12 @@ export default function RootLayout() {
     <ThemeProvider value={DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         {/* Các màn hình chỉ cho phép khi ĐÃ đăng nhập */}
-        <Stack.Protected guard={!!session}>
+        <Stack.Protected guard={!!user}>
           <Stack.Screen name="(tabs)" />
         </Stack.Protected>
 
         {/* Các màn hình auth (login/register) chỉ cho phép khi CHƯA đăng nhập */}
-        <Stack.Protected guard={!session}>
+        <Stack.Protected guard={!user}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>

@@ -4,8 +4,22 @@ import CardNote from "@/components/tabEditScreen/cardNote";
 import CalendarButton from "@/components/tabEditScreen/cardTimeItem";
 import CardValueMoney from "@/components/tabEditScreen/cardValueMoney";
 import { Color, TextSize } from "@/constants/GlobalValue";
+import { useSession } from "@/context/ctx";
+import {
+  addDoc,
+  collection,
+  getFirestore,
+} from "@react-native-firebase/firestore";
 import { useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 
 export interface FormInput {
   date: Date;
@@ -23,7 +37,10 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState("expense"); // 'expense' (Chi tiêu) hoặc 'income' (Thu nhập)
   // const [isExpense, setIsExpense] = useState(false);
 
-  const handleChooseTabExpense = () => {
+  const { user } = useSession();
+
+  // console.log(user);
+  const handleChooseTabExpense = async () => {
     setActiveTab("expense");
     setMoney(0);
     setNote("");
@@ -32,7 +49,7 @@ export default function HomeScreen() {
     setActiveTab("income");
   };
 
-  const handleAddExpense = ({
+  const handleAddExpense = async ({
     date,
     note,
     money,
@@ -41,15 +58,42 @@ export default function HomeScreen() {
   }: FormInput) => {
     if (money === 0) {
       Alert.alert("Bạn chưa nhập số tiền");
+      return;
     }
     if (category === "") {
       Alert.alert("Bạn chưa chọn danh mục");
+      return;
     }
-    console.log(date, note, money, category, (isExpense = true));
-    setMoney(0);
-    setNote("");
+    try {
+      if (!user) {
+        console.log("Chưa đăng nhập!");
+        return;
+      }
+      const db = getFirestore();
+      const transCollectionRef = collection(
+        db,
+        "User",
+        user?.uid,
+        "Transactions"
+      );
+      await addDoc(transCollectionRef, {
+        date: date,
+        note: note,
+        money: money,
+        category: category,
+        isExpense: true,
+      });
+      console.log("thành công");
+      Alert.alert("thành công");
+    } catch (error) {
+      console.log("lỗi: " + error);
+    } finally {
+      setActiveTab("expense");
+      setMoney(0);
+      setNote("");
+    }
   };
-  const handleAddIncome = ({
+  const handleAddIncome = async ({
     date,
     note,
     money,
@@ -58,105 +102,137 @@ export default function HomeScreen() {
   }: FormInput) => {
     if (money === 0) {
       Alert.alert("Bạn chưa nhập số tiền");
+      return;
     }
     if (category === "") {
       Alert.alert("Bạn chưa chọn danh mục");
+      return;
     }
-    console.log(date, note, money, category, (isExpense = false));
-    setMoney(0);
-    setNote("");
+    try {
+      if (!user) {
+        console.log("Chưa đăng nhập!");
+        return;
+      }
+      const db = getFirestore();
+      const transCollectionRef = collection(
+        db,
+        "User",
+        user?.uid,
+        "Transactions"
+      );
+      await addDoc(transCollectionRef, {
+        date: date,
+        note: note,
+        money: money,
+        category: category,
+        isExpense: false,
+      });
+      Alert.alert("thành công");
+      console.log("thành công");
+    } catch (error) {
+      console.log("lỗi: " + error);
+    } finally {
+      setActiveTab("income");
+      setMoney(0);
+      setNote("");
+    }
   };
   return (
-    <View style={styles.screen}>
-      <View style={styles.tabContainer}>
-        {/* Tab Chi tiêu */}
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "expense" && styles.activeTab,
-          ]}
-          onPress={handleChooseTabExpense}
-        >
-          <Text
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.screen}>
+        <View style={styles.tabContainer}>
+          {/* Tab Chi tiêu */}
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              activeTab === "expense" && styles.activeTabText,
+              styles.tabButton,
+              activeTab === "expense" && styles.activeTab,
             ]}
+            onPress={handleChooseTabExpense}
           >
-            Chi tiêu
-          </Text>
-        </TouchableOpacity>
-        {/* Tab Thu nhập */}
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === "income" && styles.activeTab]}
-          onPress={handleChooseTabIncome}
-        >
-          <Text
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "expense" && styles.activeTabText,
+              ]}
+            >
+              Chi tiêu
+            </Text>
+          </TouchableOpacity>
+          {/* Tab Thu nhập */}
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              activeTab === "income" && styles.activeTabText,
+              styles.tabButton,
+              activeTab === "income" && styles.activeTab,
             ]}
+            onPress={handleChooseTabIncome}
           >
-            Thu nhập
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "income" && styles.activeTabText,
+              ]}
+            >
+              Thu nhập
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {/* nội dung them từng tab */}
+        <View style={styles.content}>
+          {activeTab === "expense" ? (
+            <View style={styles.tabScreen}>
+              <View>
+                <CalendarButton date={date} updateDate={setDate} />
+                <CardNote note={note} updateNote={setNote} />
+                <CardValueMoney money={money} updateMoney={setMoney} />
+                <CardCategoryItem onSelectCategory={setCateGory} />
+              </View>
+              <View>
+                <TouchableOpacity
+                  style={styles.buttonConfirm}
+                  onPress={() =>
+                    handleAddExpense({
+                      date,
+                      note,
+                      money,
+                      category,
+                      isExpense: true,
+                    })
+                  }
+                >
+                  <Text style={styles.textButton}>Nhập khoản tiền chi</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Input tiền, ngày tháng... */}
+            </View>
+          ) : (
+            <View style={styles.tabScreen}>
+              <View>
+                <CalendarButton date={date} updateDate={setDate} />
+                <CardNote note={note} updateNote={setNote} />
+                <CardValueMoney money={money} updateMoney={setMoney} />
+                <CardCategoryIncomeItem onSelectCategory={setCateGory} />
+              </View>
+              <View>
+                <TouchableOpacity
+                  style={styles.buttonConfirm}
+                  onPress={() =>
+                    handleAddIncome({
+                      date,
+                      note,
+                      money,
+                      category,
+                      isExpense: false,
+                    })
+                  }
+                >
+                  <Text style={styles.textButton}>Nhập khoản tiền Thu</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
       </View>
-      {/* nội dung them từng tab */}
-      <View style={styles.content}>
-        {activeTab === "expense" ? (
-          <View style={styles.tabScreen}>
-            <View>
-              <CalendarButton date={date} updateDate={setDate} />
-              <CardNote note={note} updateNote={setNote} />
-              <CardValueMoney money={money} updateMoney={setMoney} />
-              <CardCategoryItem onSelectCategory={setCateGory} />
-            </View>
-            <View>
-              <TouchableOpacity
-                style={styles.buttonConfirm}
-                onPress={() =>
-                  handleAddExpense({
-                    date,
-                    note,
-                    money,
-                    category,
-                    isExpense: true,
-                  })
-                }
-              >
-                <Text style={styles.textButton}>Nhập khoản tiền chi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* Input tiền, ngày tháng... */}
-          </View>
-        ) : (
-          <View style={styles.tabScreen}>
-            <View>
-              <CalendarButton date={date} updateDate={setDate} />
-              <CardNote note={note} updateNote={setNote} />
-              <CardValueMoney money={money} updateMoney={setMoney} />
-              <CardCategoryIncomeItem onSelectCategory={setCateGory} />
-            </View>
-            <View>
-              <TouchableOpacity
-                style={styles.buttonConfirm}
-                onPress={() =>
-                  handleAddIncome({
-                    date,
-                    note,
-                    money,
-                    category,
-                    isExpense: false,
-                  })
-                }
-              >
-                <Text style={styles.textButton}>Nhập khoản tiền Thu</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 
