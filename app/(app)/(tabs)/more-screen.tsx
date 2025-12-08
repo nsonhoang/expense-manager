@@ -10,6 +10,8 @@ const reportButtons = [
   { title: "Báo cáo danh mục trong năm", path: "category-annual-report", icon: "grid-outline" },
   { title: "Báo cáo toàn kỳ", path: "all-time-report", icon: "time-outline" },
   { title: "Báo cáo danh mục toàn kỳ", path: "all-time-category-report", icon: "albums-outline" },
+  { title: "Trợ giúp", path: "HelpScreen", icon: "help-circle-outline" },
+  { title: "Thông tin ứng dụng", path: "AppInfoScreen", icon: "information-circle-outline" },
 ];
 
 const MoreScreen = () => {

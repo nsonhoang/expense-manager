@@ -1,92 +1,208 @@
-import { mockExpenses, mockIncomes } from "@/constants/mockDataReport";
+import { categoryIcons } from "@/constants/categoryIcons";
+import { useSession } from "@/context/ctx";
+import { formatMoney } from "@/utils/formatMoney";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  collection, FirebaseFirestoreTypes, getFirestore,
+  onSnapshot,
+  orderBy,
+  query
+} from "@react-native-firebase/firestore";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const COLORS = [
+  "#FF7043",
+  "#4FC3F7",
+  "#FFCA28",
+  "#66BB6A",
+  "#AB47BC",
+  "#EC407A",
+];
+
+interface Transaction {
+  id: string;
+  date: Date;
+  note?: string;
+  money: number;
+  category: string;
+  isExpense: boolean;
+}
+
 const ReportScreen = () => {
-  // State: tab hiện tại
-  const [selectedTab, setSelectedTab] = useState("expense"); // 'expense' | 'income'
+  const { user } = useSession();
 
-  type IncomeItem = {
-    label: string;
-    value: number;
-    color: string;
-    percent?: number;
-  };
-
-  type ExpenseItem = {
-    label: string;
-    value: number;
-    color: string;
-    percent?: number;
-  };
-
-  // Tính phần trăm
-  const calcPercent = (data: IncomeItem[]): IncomeItem[] => {
-    const total = data.reduce((sum, item) => sum + item.value, 0);
-
-    return data.map((item) => ({
-      ...item,
-      percent: Number(((item.value / total) * 100).toFixed(1)),
-    }));
-  };
-
-  const incomes = calcPercent(mockIncomes);
-  const expenses = calcPercent(mockExpenses) as ExpenseItem[];
-
-
-  // dữ liệu hiển thị tuỳ theo tab
-  const dataToShow = selectedTab === "expense" ? expenses : incomes;
-
-  // Pie data (memoized)
-  const pieData = useMemo(
-    () =>
-      dataToShow.map((item) => ({
-        value: item.value,
-        color: item.color,
-        text: item.percent + "%",
-      })),
-    [dataToShow]
+  const now = new Date();
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
+  const [allTrans, setAllTrans] = useState<Transaction[]>([]);
+  const [selectedTab, setSelectedTab] = useState<"expense" | "income">(
+    "expense"
   );
 
-  // Tổng
-  const totalExpense = expenses.reduce((s, i) => s + i.value, 0);
-  const totalIncome = incomes.reduce((s, i) => s + i.value, 0);
+  // ---------------- FIREBASE LISTENER ----------------
+  useEffect(() => {
+    if (!user) return;
+
+    const ref = collection(
+      getFirestore(),
+      "User",
+      user.uid,
+      "Transactions"
+    );
+
+    const unsub = onSnapshot(
+      query(ref, orderBy("date", "desc")),
+      (snap) => {
+        setAllTrans(
+          snap.docs.map((doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
+            const d = doc.data();
+            return {
+              id: doc.id,
+              money: d.money || 0,
+              note: d.note || "",
+              category: d.category || "Khác",
+              isExpense: d.isExpense ?? true,
+              date: d.date.toDate(),
+            };
+          })
+        );
+      }
+    );
+
+    return unsub;
+  }, [user]);
+
+  // ---------------- CHUYỂN THÁNG ----------------
+  const changeMonth = useCallback(
+    (dir: number) => {
+      let m = month + dir;
+      let y = year;
+
+      if (m === 0) {
+        m = 12;
+        y--;
+      } else if (m === 13) {
+        m = 1;
+        y++;
+      }
+
+      setMonth(m);
+      setYear(y);
+    },
+    [month, year]
+  );
+
+  // ----------- TÍNH TOÁN TẤT CẢ TRONG 1 useMemo -----------
+  const {
+    totalExpense,
+    totalIncome,
+    dataToShow,
+    pieData,
+  } = useMemo(() => {
+    const dataMonth = allTrans.filter(
+      (item) =>
+        item.date.getMonth() + 1 === month &&
+        item.date.getFullYear() === year
+    );
+
+    const totalExpense = dataMonth
+      .filter((i) => i.isExpense)
+      .reduce((s, i) => s + i.money, 0);
+
+    const totalIncome = dataMonth
+      .filter((i) => !i.isExpense)
+      .reduce((s, i) => s + i.money, 0);
+
+    const group = (isExpense: boolean) => {
+      const map = new Map<string, number>();
+
+      dataMonth
+        .filter((i) => i.isExpense === isExpense)
+        .forEach((t) => {
+          map.set(t.category, (map.get(t.category) || 0) + t.money);
+        });
+
+      return [...map.entries()].map(([label, value], index) => ({
+        label,
+        value,
+        color: COLORS[index % COLORS.length],
+      }));
+    };
+
+    const calcPercent = (arr: any[]) => {
+      const total = arr.reduce((s, i) => s + i.value, 0);
+      return arr.map((i) => ({
+        ...i,
+        percent: total ? Number(((i.value / total) * 100).toFixed(1)) : 0,
+      }));
+    };
+
+    const expenses = calcPercent(group(true));
+    const incomes = calcPercent(group(false));
+
+    const dataToShow =
+      selectedTab === "expense" ? expenses : incomes;
+
+    const pieData = dataToShow.map((i) => ({
+      value: i.value,
+      color: i.color,
+      text: i.percent + "%",
+    }));
+
+    return {
+      totalExpense,
+      totalIncome,
+      dataToShow,
+      pieData,
+    };
+  }, [allTrans, month, year, selectedTab]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* MONTH SELECTOR */}
       <View style={styles.monthBox}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => changeMonth(-1)}>
           <Ionicons name="chevron-back" size={22} color="#000" />
         </TouchableOpacity>
 
         <View style={styles.monthCenter}>
-          <Text style={styles.monthText}>12/2025</Text>
+          <Text style={styles.monthText}>{`${month}/${year}`}</Text>
           <Ionicons name="calendar-outline" size={18} color="#000" />
         </View>
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => changeMonth(1)}>
           <Ionicons name="chevron-forward" size={22} color="#000" />
         </TouchableOpacity>
       </View>
 
-      {/* SUMMARY CARD */}
+      {/* SUMMARY */}
       <View style={styles.summaryCard}>
         <View style={styles.summaryRow}>
           <View style={styles.summaryCol}>
             <Text style={styles.summaryLabel}>Chi tiêu</Text>
             <Text style={[styles.summaryValue, { color: "#FF7043" }]}>
-              -{totalExpense.toLocaleString()}đ
+              -{formatMoney(totalExpense)}
             </Text>
           </View>
 
           <View style={styles.summaryCol}>
             <Text style={styles.summaryLabel}>Thu nhập</Text>
             <Text style={[styles.summaryValue, { color: "#4FC3F7" }]}>
-              +{totalIncome.toLocaleString()}đ
+              +{formatMoney(totalIncome)}
             </Text>
           </View>
         </View>
@@ -94,63 +210,65 @@ const ReportScreen = () => {
         <View style={styles.summaryFooter}>
           <Text style={styles.footerText}>Thu chi </Text>
           <Text style={[styles.footerText, { fontWeight: "bold" }]}>
-            +{(totalIncome - totalExpense).toLocaleString()}đ
+            {formatMoney(totalIncome - totalExpense)}
           </Text>
         </View>
       </View>
 
       {/* TAB */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity onPress={() => setSelectedTab("expense")}>
-          <Text style={[styles.tabText, selectedTab === "expense" ? styles.tabActive : styles.tabInactive]}>
-            Chi tiêu
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => setSelectedTab("income")}>
-          <Text style={[styles.tabText, selectedTab === "income" ? styles.tabActive : styles.tabInactive]}>
-            Thu nhập
-          </Text>
-        </TouchableOpacity>
+        {["expense", "income"].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            onPress={() => setSelectedTab(tab as any)}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === tab
+                  ? styles.tabActive
+                  : styles.tabInactive,
+              ]}
+            >
+              {tab === "expense" ? "Chi tiêu" : "Thu nhập"}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
+      {/* PIE CHART */}
       <View style={styles.chartContainer}>
         <PieChart
           data={pieData}
           donut
-          radius={70}
-          innerRadius={30}
-          textColor="white"
-          textSize={12}
+          radius={75}
+          innerRadius={35}
           showText={false}
           innerCircleColor="#fff"
-          strokeWidth={0.2}
+          strokeWidth={0.5}
         />
       </View>
 
-      {/* CATEGORY LIST */}
+      {/* Khi không có dữ liệu */}
+      {dataToShow.length === 0 && (
+        <View style={{ padding: 20, alignItems: "center" }}>
+          <Text style={{ color: "#999", fontSize: 16 }}>Không có dữ liệu</Text>
+        </View>
+      )}
+
+      {/* LIST */}
       <FlatList
         data={dataToShow}
-        keyExtractor={(item) => item.label + item.value}
+        keyExtractor={(item) => item.label}
+        ItemSeparatorComponent={() => (
+          <View style={styles.separator} />
+        )}
         renderItem={({ item }) => (
           <View style={styles.itemRow}>
             <View style={styles.itemLeft}>
               <Ionicons
-                name={
-                  item.label === "Ăn uống" ? "restaurant" : 
-                  item.label === "Y tế" ? "medkit" : 
-                  item.label === "Lương" ? "cash" : 
-                  item.label === "Thưởng" ? "trophy" :
-                  item.label === "Di chuyển" ? "car" :
-                  item.label === "Giải trí" ? "game-controller" :
-                  item.label === "Mua sắm" ? "cart" :
-                  item.label === "Freelance" ? "laptop" :
-                  item.label === "Kinh doanh" ? "briefcase" :
-                  item.label === "Đầu tư" ? "trending-up" :
-                  item.label === "Cho thuê" ? "home" :
-                  "arrow-up"
-                }
-                size={22}
+                name={categoryIcons[item.label] || "ellipse"}
+                size={20}
                 color={item.color}
               />
               <Text style={styles.itemLabel}>{item.label}</Text>
@@ -158,20 +276,27 @@ const ReportScreen = () => {
 
             <View style={styles.itemRight}>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.itemValue}>{item.value.toLocaleString()}đ</Text>
-                <Text style={styles.itemPercent}>{item.percent}%</Text>
+                <Text style={styles.itemValue}>
+                  {formatMoney(item.value)}
+                </Text>
+                <Text style={styles.itemPercent}>
+                  {item.percent}%
+                </Text>
               </View>
-
-              <Ionicons name="chevron-forward" size={20} color="#777" />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color="#777"
+              />
             </View>
           </View>
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: "#eee" }} />}
-        ListFooterComponent={<View style={{ height: 30 }} />}
       />
     </SafeAreaView>
   );
 };
+
+export default ReportScreen;
 
 const styles = StyleSheet.create({
   monthBox: {
@@ -188,8 +313,7 @@ const styles = StyleSheet.create({
     margin: 15,
     borderRadius: 10,
     padding: 15,
-    borderColor: "#333",
-    borderWidth: 0.1,
+    elevation: 2,
   },
   summaryRow: { flexDirection: "row", justifyContent: "space-between" },
   summaryCol: { alignItems: "center", flex: 1 },
@@ -214,20 +338,28 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
   },
   tabText: { fontSize: 16, paddingVertical: 8 },
-  tabActive: { color: "#4FC3F7", fontWeight: "700", borderBottomWidth: 2, borderBottomColor: "#4FC3F7" },
+  tabActive: {
+    color: "#4FC3F7",
+    fontWeight: "700",
+    borderBottomWidth: 2,
+    borderBottomColor: "#4FC3F7",
+  },
   tabInactive: { color: "#777" },
 
   chartContainer: {
     alignItems: "center",
     marginVertical: 10,
   },
-  chartLabel: { marginTop: 8, fontSize: 14, color: "#333" },
+
+  separator: {
+    height: 1,
+    backgroundColor: "#eee",
+  },
 
   itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 15,
-    borderBottomWidth: 0,
     alignItems: "center",
   },
   itemLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -236,5 +368,3 @@ const styles = StyleSheet.create({
   itemPercent: { color: "#777", fontSize: 14 },
   itemRight: { flexDirection: "row", alignItems: "center", gap: 8 },
 });
-
-export default ReportScreen;

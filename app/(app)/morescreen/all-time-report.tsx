@@ -1,23 +1,34 @@
+import { useSession } from "@/context/ctx";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  collection,
+  getFirestore,
+  onSnapshot,
+  orderBy,
+  query,
+} from "@react-native-firebase/firestore";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const mockData = {
-  income: 1000000,
-  expense: 120000,
-  total: 880000,
-  startBalance: 0,
-};
+interface Transaction {
+  id: string;
+  date: Date;
+  note?: string;
+  money: number;
+  category: string;
+  isExpense: boolean;
+}
 
-const format = (num: number) => num.toLocaleString("vi-VN");
+const format = (num: number) => num?.toLocaleString("vi-VN") ?? "0";
 
 // Row component
 const Row = ({ label, value }: { label: string; value: number }) => (
@@ -33,10 +44,68 @@ const Row = ({ label, value }: { label: string; value: number }) => (
 
 export default function AllTimeReportScreen() {
   const router = useRouter();
+  const { user } = useSession();
+
+  const [allTrans, setAllTrans] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // load transactions từ Firestore: User/{uid}/Transactions
+  useEffect(() => {
+    if (!user) {
+      setAllTrans([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const ref = collection(getFirestore(), "User", user.uid, "Transactions");
+    const q = query(ref, orderBy("date", "desc"));
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list: Transaction[] = snap.docs.map((doc) => {
+          const d = doc.data() as any;
+          return {
+            id: doc.id,
+            money: d.money || 0,
+            note: d.note || "",
+            category: d.category || "Khác",
+            isExpense: d.isExpense ?? true,
+            date: d.date?.toDate?.() ?? new Date(),
+          } as Transaction;
+        });
+        setAllTrans(list);
+        setLoading(false);
+      },
+      (err) => {
+        console.warn("Firestore onSnapshot error:", err);
+        setAllTrans([]);
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
+  }, [user]);
+
+  // tính toán thu/chi/tổng (toàn kì)
+  const { income, expense, total, startBalance } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+
+    allTrans.forEach((t) => {
+      if (t.isExpense) expense += t.money;
+      else income += t.money;
+    });
+
+    // startBalance: nếu bạn lưu trên user profile thì có thể thay; hiện mặc định = 0
+    const startBalance = 0;
+
+    return { income, expense, total: income - expense, startBalance };
+  }, [allTrans]);
 
   return (
     <SafeAreaView style={styles.container}>
-
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -45,24 +114,33 @@ export default function AllTimeReportScreen() {
 
         <Text style={styles.headerTitle}>Báo cáo toàn kì</Text>
 
-        <View style={{ width: 26 }} /> 
+        <View style={{ width: 26 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-
-        {/* BLOCK 1 */}
-        <View style={styles.block}>
-          <Row label="Thu nhập" value={mockData.income} />
-          <Row label="Chi tiêu" value={mockData.expense} />
-          <Row label="Tổng" value={mockData.total} />
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color="#333" />
         </View>
-
-        {/* BLOCK 2 */}
-        <View style={styles.block}>
-          <Row label="Số dư ban đầu" value={mockData.startBalance} />
-          <Row label="Tổng" value={mockData.total} />
+      ) : allTrans.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+          <Text style={{ fontSize: 16, color: "#777" }}>Không có dữ liệu</Text>
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {/* BLOCK 1 */}
+          <View style={styles.block}>
+            <Row label="Thu nhập" value={income} />
+            <Row label="Chi tiêu" value={expense} />
+            <Row label="Tổng" value={total} />
+          </View>
+
+          {/* BLOCK 2 */}
+          <View style={styles.block}>
+            <Row label="Số dư ban đầu" value={startBalance} />
+            <Row label="Tổng" value={total} />
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

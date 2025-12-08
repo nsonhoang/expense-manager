@@ -1,143 +1,246 @@
-import { mockExpenses, mockIncomes } from "@/constants/mockDataReport";
+import { categoryIcons } from "@/constants/categoryIcons";
+import { useSession } from "@/context/ctx";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  collection,
+  getFirestore,
+  onSnapshot,
+  orderBy,
+  query,
+} from "@react-native-firebase/firestore";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const COLORS = [
+  "#FF7043",
+  "#4FC3F7",
+  "#FFCA28",
+  "#66BB6A",
+  "#AB47BC",
+  "#EC407A",
+];
+
+interface Transaction {
+  id: string;
+  date: Date;
+  note?: string;
+  money: number;
+  category: string;
+  isExpense: boolean;
+}
 
 const AllCategoryAnnualReportScreen = () => {
+  const { user } = useSession();
+
   // State: tab hiện tại
-  const [selectedTab, setSelectedTab] = useState("expense"); // 'expense' | 'income'
-
-  type IncomeItem = {
-    label: string;
-    value: number;
-    color: string;
-    percent?: number;
-  };
-
-  type ExpenseItem = {
-    label: string;
-    value: number;
-    color: string;
-    percent?: number;
-  };
-
-  // Tính phần trăm
-  const calcPercent = (data: IncomeItem[]): IncomeItem[] => {
-    const total = data.reduce((sum, item) => sum + item.value, 0);
-
-    return data.map((item) => ({
-      ...item,
-      percent: Number(((item.value / total) * 100).toFixed(1)),
-    }));
-  };
-
-  const incomes = calcPercent(mockIncomes);
-  const expenses = calcPercent(mockExpenses) as ExpenseItem[];
-
-
-  // dữ liệu hiển thị tuỳ theo tab
-  const dataToShow = selectedTab === "expense" ? expenses : incomes;
-
-  // Pie data (memoized)
-  const pieData = useMemo(
-    () =>
-      dataToShow.map((item) => ({
-        value: item.value,
-        color: item.color,
-        text: item.percent + "%",
-      })),
-    [dataToShow]
+  const [selectedTab, setSelectedTab] = useState<"expense" | "income">(
+    "expense"
   );
 
-  return (
-  <SafeAreaView style={styles.container}>
+  const [allTrans, setAllTrans] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    {/* TOP BAR */}
-    <View style={styles.topBar}>
-      <TouchableOpacity onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={26} color="#333" />
-      </TouchableOpacity>
+  // FIREBASE LISTENER -> lấy toàn bộ transactions (toàn thời gian)
+  useEffect(() => {
+    if (!user) {
+      setAllTrans([]);
+      setLoading(false);
+      return;
+    }
 
-      <Text style={styles.screenTitle}>Toàn thời gian</Text>
+    setLoading(true);
+    const ref = collection(getFirestore(), "User", user.uid, "Transactions");
+    const q = query(ref, orderBy("date", "desc"));
 
-      <View style={{ width: 26 }} />
-    </View>
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list: Transaction[] = snap.docs.map((doc) => {
+          const d = doc.data() as any;
+          return {
+            id: doc.id,
+            money: d.money || 0,
+            note: d.note || "",
+            category: d.category || "Khác",
+            isExpense: d.isExpense ?? true,
+            // safe convert timestamp -> Date
+            date: d.date && typeof d.date.toDate === "function"
+              ? d.date.toDate()
+              : new Date(),
+          } as Transaction;
+        });
 
-    {/* TAB */}
-    <View style={styles.tabContainer}>
-      <TouchableOpacity onPress={() => setSelectedTab("expense")}>
-        <Text style={[styles.tab, selectedTab === "expense" && styles.tabActive]}>
-          Chi tiêu
-        </Text>
-      </TouchableOpacity>
+        setAllTrans(list);
+        setLoading(false);
+      },
+      (err) => {
+        console.warn("Firestore onSnapshot error:", err);
+        setAllTrans([]);
+        setLoading(false);
+      }
+    );
 
-      <TouchableOpacity onPress={() => setSelectedTab("income")}>
-        <Text style={[styles.tab, selectedTab === "income" && styles.tabActive]}>
-          Thu nhập
-        </Text>
-      </TouchableOpacity>
-    </View>
+    return () => unsub();
+  }, [user]);
 
-    {/* PIE CHART WRAPPED CARD */}
-    <View style={styles.chartCard}>
-      <PieChart
-        data={pieData}
-        donut
-        radius={80}
-        innerRadius={38}
-        showText={false}
-        textSize={12}
-        textColor="#fff"
-        innerCircleColor="#fff"
-      />
-    </View>
+  // Nếu bạn muốn test nhanh: dùng mock data khi allTrans rỗng
+  // const testTrans = useMemo(() => mockExpenses.concat(mockIncomes), []);
+  // setAllTrans(...) // <- optional for dev
 
-    {/* CATEGORY LIST */}
-    <FlatList
-      data={dataToShow}
-      keyExtractor={(i) => i.label + i.value}
-      renderItem={({ item }) => (
-        <View style={styles.itemRow}>
-          <View style={styles.itemLeft}>
-            <Ionicons
-              name={
-                item.label === "Ăn uống" ? "restaurant" :
-                item.label === "Y tế" ? "medkit" : 
-                item.label === "Lương" ? "cash" :
-                item.label === "Thưởng" ? "trophy" :
-                item.label === "Di chuyển" ? "car" :
-                item.label === "Giải trí" ? "game-controller" :
-                item.label === "Mua sắm" ? "cart" :
-                item.label === "Freelance" ? "laptop" :
-                item.label === "Kinh doanh" ? "briefcase" :
-                item.label === "Đầu tư" ? "trending-up" :
-                item.label === "Cho thuê" ? "home" : "ellipse"
-              }
-              size={22}
-              color={item.color}
-            />
-            <Text style={styles.itemLabel}>{item.label}</Text>
-          </View>
+  // Gom nhóm theo category và tính percent (toàn thời gian)
+  const { expenses, incomes, dataToShow, pieData } = useMemo(() => {
+    const group = (isExpense: boolean) => {
+      const map = new Map<string, number>();
 
-          <View style={styles.itemRight}>
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={styles.itemValue}>{item.value.toLocaleString()}đ</Text>
-              <Text style={styles.itemPercent}>{item.percent}%</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#aaa" />
-          </View>
+      allTrans
+        .filter((t) => t.isExpense === isExpense)
+        .forEach((t) => {
+          const label = t.category || "Khác";
+          map.set(label, (map.get(label) || 0) + (t.money || 0));
+        });
+
+      return [...map.entries()].map(([label, value], index) => ({
+        label,
+        value,
+        color: COLORS[index % COLORS.length],
+      }));
+    };
+
+    const calcPercent = (arr: { label: string; value: number; color: string }[]) => {
+      const total = arr.reduce((s, i) => s + i.value, 0);
+      if (total === 0) {
+        return arr.map((i) => ({ ...i, percent: 0 }));
+      }
+      return arr.map((i) => ({
+        ...i,
+        percent: Number(((i.value / total) * 100).toFixed(1)),
+      }));
+    };
+
+    const expenses = calcPercent(group(true));
+    const incomes = calcPercent(group(false));
+
+    const dataToShow = selectedTab === "expense" ? expenses : incomes;
+
+    const pieData = dataToShow.map((i) => ({
+      value: i.value,
+      color: i.color,
+      text: (i.percent ?? 0) + "%",
+    }));
+
+    return { expenses, incomes, dataToShow, pieData };
+  }, [allTrans, selectedTab]);
+
+  // Khi loading
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={26} color="#333" />
+          </TouchableOpacity>
+
+          <Text style={styles.screenTitle}>Toàn thời gian</Text>
+
+          <View style={{ width: 26 }} />
         </View>
-      )}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
-      ListFooterComponent={<View style={{ height: 20 }} />}
-    />
-  </SafeAreaView>
-);
 
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color="#333" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* TOP BAR */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={26} color="#333" />
+        </TouchableOpacity>
+
+        <Text style={styles.screenTitle}>Toàn thời gian</Text>
+
+        <View style={{ width: 26 }} />
+      </View>
+
+      {/* TAB */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity onPress={() => setSelectedTab("expense")}>
+          <Text style={[styles.tab, selectedTab === "expense" && styles.tabActive]}>
+            Chi tiêu
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setSelectedTab("income")}>
+          <Text style={[styles.tab, selectedTab === "income" && styles.tabActive]}>
+            Thu nhập
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* PIE CHART WRAPPED CARD */}
+      <View style={styles.chartCard}>
+        {dataToShow.length === 0 ? (
+          <View style={{ padding: 20, alignItems: "center" }}>
+            <Text style={{ color: "#999", fontSize: 16 }}>Không có dữ liệu</Text>
+          </View>
+        ) : (
+          <PieChart
+            data={pieData}
+            donut
+            radius={80}
+            innerRadius={38}
+            showText={false}
+            textSize={12}
+            textColor="#fff"
+            innerCircleColor="#fff"
+          />
+        )}
+      </View>
+
+      {/* CATEGORY LIST */}
+      {dataToShow.length === 0 ? null : (
+        <FlatList
+          data={dataToShow}
+          keyExtractor={(i) => i.label + i.value}
+          renderItem={({ item }) => (
+            <View style={styles.itemRow}>
+              <View style={styles.itemLeft}>
+                <Ionicons
+                  name={categoryIcons[item.label] || "ellipse"}
+                  size={22}
+                  color={item.color}
+                />
+                <Text style={styles.itemLabel}>{item.label}</Text>
+              </View>
+
+              <View style={styles.itemRight}>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={styles.itemValue}>{item.value.toLocaleString()}đ</Text>
+                  <Text style={styles.itemPercent}>{item.percent}%</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#aaa" />
+              </View>
+            </View>
+          )}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListFooterComponent={<View style={{ height: 20 }} />}
+        />
+      )}
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -242,6 +345,5 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 });
-
 
 export default AllCategoryAnnualReportScreen;

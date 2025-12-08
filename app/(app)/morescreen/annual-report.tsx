@@ -1,6 +1,15 @@
+import { useSession } from "@/context/ctx";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  collection,
+  FirebaseFirestoreTypes,
+  getFirestore,
+  onSnapshot,
+  orderBy,
+  query,
+} from "@react-native-firebase/firestore";
 import { router } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -12,6 +21,26 @@ import {
 import { BarChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+/** Cho phép nhận cả undefined/null để an toàn khi truyền giá trị không chắc */
+const formatVND = (n: number | null | undefined) =>
+  typeof n === "number" ? n.toLocaleString("vi-VN") + "đ" : "0đ";
+
+const MonthItem = React.memo(({ month, value }: { month: number; value: number }) => (
+  <View style={styles.monthItem}>
+    <Text style={styles.monthName}>Tháng {month}</Text>
+    <Text style={styles.monthValue}>{formatVND(value)}</Text>
+  </View>
+));
+
+type Transaction = {
+  id: string;
+  date: Date;
+  money: number;
+  isExpense: boolean;
+  category?: string;
+  note?: string;
+};
+
 const TABS = [
   { key: "expense", label: "Chi tiêu" },
   { key: "income", label: "Thu nhập" },
@@ -22,33 +51,98 @@ const SCREEN_PADDING = 32;
 const BAR_GAP = 8;
 const SCALE = 1000;
 
-/** Cho phép nhận cả undefined/null để an toàn khi truyền giá trị không chắc */
-const formatVND = (n: number | null | undefined) =>
-  typeof n === "number" ? n.toLocaleString("vi-VN") + "đ" : "0đ";
-
-const MonthItem = React.memo(({ month, value }: any) => (
-  <View style={styles.monthItem}>
-    <Text style={styles.monthName}>Tháng {month}</Text>
-    <Text style={styles.monthValue}>{formatVND(value)}</Text>
-  </View>
-));
-
 const AnnualReportScreen = () => {
-  const [year, setYear] = useState(2025);
-  const [activeTab, setActiveTab] = useState("expense");
+  const { user } = useSession();
+
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [activeTab, setActiveTab] = useState<"expense" | "income" | "total">(
+    "expense"
+  );
   const [chartWidth, setChartWidth] = useState(Dimensions.get("window").width);
 
-  /** Fake dữ liệu - chú ý: khai báo Record<string, number[]> để Index bằng string không lỗi */
-  const data: Record<string, number[]> = useMemo(
+  const [allTrans, setAllTrans] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // ---------------- FIRESTORE LISTENER ----------------
+  useEffect(() => {
+    if (!user?.uid) {
+      setAllTrans([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const db = getFirestore();
+    const ref = collection(db, "User", user.uid, "Transactions");
+    const q = query(ref, orderBy("date", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snap: FirebaseFirestoreTypes.QuerySnapshot) => {
+        const list: Transaction[] = snap.docs.map((doc) => {
+          const d = doc.data() as any;
+          // safe convert
+          const date =
+            d?.date?.toDate && typeof d.date.toDate === "function"
+              ? d.date.toDate()
+              : d?.date
+              ? new Date(d.date)
+              : new Date();
+
+          return {
+            id: doc.id,
+            date,
+            money: Number(d?.money || 0),
+            isExpense: d?.isExpense ?? true,
+            category: d?.category ?? "Khác",
+            note: d?.note ?? "",
+          };
+        });
+
+        setAllTrans(list);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Firestore onSnapshot error:", err);
+        setAllTrans([]);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  // ---------------- AGGREGATE MONTHLY (income/expense/total) ----------------
+  const monthly = useMemo(() => {
+    // initialize 12 months
+    const income = Array<number>(12).fill(0);
+    const expense = Array<number>(12).fill(0);
+
+    allTrans.forEach((t) => {
+      const d = new Date(t.date);
+      if (d.getFullYear() !== year) return;
+      const idx = d.getMonth(); // 0..11
+      if (t.isExpense) expense[idx] += t.money;
+      else income[idx] += t.money;
+    });
+
+    // total = income - expense (month by month)
+    const total = income.map((inc, i) => inc - expense[i]);
+
+    return { income, expense, total };
+  }, [allTrans, year]);
+
+  // prepare data object like original mock structure
+  const data = useMemo(
     () => ({
-      expense: Array(11).fill(0).concat(120000),
-      income: [50000, ...Array(10).fill(0), 100000],
-      total: [50000, ...Array(10).fill(0), 220000],
+      expense: monthly.expense,
+      income: monthly.income,
+      total: monthly.total,
     }),
-    [year]
+    [monthly]
   );
 
-  /** Tổng năm */
+  /** Tổng năm cho active tab */
   const totalOfYear = useMemo(
     () => data[activeTab].reduce((s, x) => s + Number(x || 0), 0),
     [data, activeTab]
@@ -66,13 +160,13 @@ const AnnualReportScreen = () => {
     return { barWidth, spacing: BAR_GAP, initialSpacing: 8 };
   }, [chartWidth]);
 
-  /** Data chart */
+  /** Data chart (scale values by SCALE) */
   const chartData = useMemo(
     () =>
       data[activeTab].map((v, i) => ({
-        value: Math.round(v / SCALE),
+        value: Math.round((v || 0) / SCALE),
         label: `${i + 1}`,
-        frontColor: v > 0 ? "#177AD5" : "#e0e0e0",
+        frontColor: (activeTab === "expense" && v > 0) ? "#FF7043" : (activeTab === "income" && v > 0) ? "#4FC3F7" : (v > 0 ? "#177AD5" : "#e0e0e0"),
       })),
     [data, activeTab]
   );
@@ -87,7 +181,6 @@ const AnnualReportScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -96,7 +189,7 @@ const AnnualReportScreen = () => {
 
         <Text style={styles.headerTitle}>Báo cáo trong năm</Text>
 
-        <View style={{ width: 26 }} /> 
+        <View style={{ width: 26 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
@@ -125,7 +218,7 @@ const AnnualReportScreen = () => {
               <TouchableOpacity
                 key={t.key}
                 style={[styles.tab, active && styles.activeTab]}
-                onPress={() => setActiveTab(t.key)}
+                onPress={() => setActiveTab(t.key as any)}
               >
                 <Text style={[styles.tabText, active && styles.activeTabText]}>
                   {t.label}
@@ -162,6 +255,13 @@ const AnnualReportScreen = () => {
             <MonthItem key={i} month={i + 1} value={v} />
           ))}
         </View>
+
+        {/* optional loading indicator */}
+        {loading && (
+          <View style={{ padding: 12, alignItems: "center" }}>
+            <Text style={{ color: "#666" }}>Đang tải dữ liệu...</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
