@@ -20,6 +20,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 
 export interface FormInput {
   date: Date;
@@ -180,6 +181,7 @@ export default function HomeScreen() {
         <View style={styles.content}>
           {activeTab === "expense" ? (
             <View style={styles.tabScreen}>
+              <ScrollView>
               <View>
                 <CalendarButton date={date} updateDate={setDate} />
                 <CardNote note={note} updateNote={setNote} />
@@ -203,9 +205,11 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
               {/* Input tiền, ngày tháng... */}
+              </ScrollView>
             </View>
           ) : (
             <View style={styles.tabScreen}>
+              <ScrollView>
               <View>
                 <CalendarButton date={date} updateDate={setDate} />
                 <CardNote note={note} updateNote={setNote} />
@@ -228,6 +232,7 @@ export default function HomeScreen() {
                   <Text style={styles.textButton}>Nhập khoản tiền Thu</Text>
                 </TouchableOpacity>
               </View>
+              </ScrollView>
             </View>
           )}
         </View>

@@ -2,24 +2,32 @@ import { useSession } from "@/context/ctx";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const reportButtons = [
+const reportButtons: { title: string; path: string; icon: IoniconName }[] = [
   { title: "Báo cáo trong năm", path: "annual-report", icon: "calendar-outline" },
   { title: "Báo cáo danh mục trong năm", path: "category-annual-report", icon: "grid-outline" },
   { title: "Báo cáo toàn kỳ", path: "all-time-report", icon: "time-outline" },
   { title: "Báo cáo danh mục toàn kỳ", path: "all-time-category-report", icon: "albums-outline" },
-  { title: "Trợ giúp", path: "HelpScreen", icon: "help-circle-outline" },
-  { title: "Thông tin ứng dụng", path: "AppInfoScreen", icon: "information-circle-outline" },
+  { title: "Trợ giúp", path: "helpScreen", icon: "help-circle-outline" },
+  { title: "Thông tin ứng dụng", path: "appInfoScreen", icon: "information-circle-outline" },
 ];
+
+type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const MoreScreen = () => {
   const { signOut } = useSession();
   const router = useRouter();
+  const { user } = useSession();
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+      <Text style={styles.header}>Xin chào, {user?.displayName || "bạn"}!</Text>
       <View style={styles.section}>
         {reportButtons.map((item, i) => (
           <TouchableOpacity
@@ -35,7 +43,7 @@ const MoreScreen = () => {
           </TouchableOpacity>
         ))}
       </View>
-
+      </ScrollView>
       <TouchableOpacity
         onPress={() => {
           signOut();
@@ -53,7 +61,8 @@ const MoreScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    paddingTop: 5,
+    paddingHorizontal: 20,
     backgroundColor: "#f7f7f7",
   },
   header: {
