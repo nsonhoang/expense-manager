@@ -231,7 +231,7 @@ const AllCategoryAnnualReportScreen = () => {
                   <Text style={styles.itemValue}>{item.value.toLocaleString()}đ</Text>
                   <Text style={styles.itemPercent}>{item.percent}%</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#aaa" />
+                {/* <Ionicons name="chevron-forward" size={20} color="#aaa" /> */}
               </View>
             </View>
           )}

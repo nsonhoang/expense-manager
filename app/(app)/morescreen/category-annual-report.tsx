@@ -223,11 +223,11 @@ const CategoryAnnualReportScreen = () => {
                 </Text>
                 <Text style={styles.itemPercent}>{item.percent}%</Text>
               </View>
-              <Ionicons
+              {/* <Ionicons
                 name="chevron-forward"
                 size={20}
                 color="#aaa"
-              />
+              /> */}
             </View>
           </View>
         )}

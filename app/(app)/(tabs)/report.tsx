@@ -106,7 +106,6 @@ const ReportScreen = () => {
     [month, year]
   );
 
-  // ----------- TÍNH TOÁN TẤT CẢ TRONG 1 useMemo -----------
   const {
     totalExpense,
     totalIncome,
@@ -283,11 +282,11 @@ const ReportScreen = () => {
                   {item.percent}%
                 </Text>
               </View>
-              <Ionicons
+              {/* <Ionicons
                 name="chevron-forward"
                 size={20}
                 color="#777"
-              />
+              /> */}
             </View>
           </View>
         )}
