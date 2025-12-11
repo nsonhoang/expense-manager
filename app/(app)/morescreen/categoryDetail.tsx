@@ -4,7 +4,13 @@ import firestore from "@react-native-firebase/firestore";
 import { format } from "date-fns"; // optional but handy (install if needed)
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { BarChart } from "react-native-gifted-charts"; // vì project dùng gift charts
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -18,7 +24,10 @@ type Tx = {
 };
 
 export default function CategoryDetail() {
-  const params = useLocalSearchParams() as { category?: string; isExpense?: string };
+  const params = useLocalSearchParams() as {
+    category?: string;
+    isExpense?: string;
+  };
   const category = params.category || "";
   const isExpense = params.isExpense === "1";
   const { user } = useSession();
@@ -82,7 +91,9 @@ export default function CategoryDetail() {
     });
 
     // Convert map to sorted arrays
-    const entries = Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? -1 : 1));
+    const entries = Array.from(map.entries()).sort((a, b) =>
+      a[0] < b[0] ? -1 : 1
+    );
     const labels = entries.map(([k]) => {
       const d = new Date(k);
       return `${d.getDate()}/${d.getMonth() + 1}`; // dd/MM
@@ -124,7 +135,9 @@ export default function CategoryDetail() {
                 noOfSections={4}
               />
             ) : (
-              <Text style={styles.noDataText}>Không có giao dịch để hiển thị biểu đồ</Text>
+              <Text style={styles.noDataText}>
+                Không có giao dịch để hiển thị biểu đồ
+              </Text>
             )}
           </View>
 
@@ -134,14 +147,21 @@ export default function CategoryDetail() {
             keyExtractor={(i) => i.id}
             renderItem={({ item }) => {
               const d = toDate(item.date);
-              const dateStr = format ? format(d, "dd/MM/yyyy") : d.toLocaleDateString();
+              const dateStr = format
+                ? format(d, "dd/MM/yyyy")
+                : d.toLocaleDateString();
               return (
                 <View style={styles.txRow}>
                   <View>
                     <Text style={styles.txDate}>{dateStr}</Text>
                     <Text style={styles.txNote}>{item.note || "-"}</Text>
                   </View>
-                  <Text style={[styles.txMoney, isExpense ? styles.expense : styles.income]}>
+                  <Text
+                    style={[
+                      styles.txMoney,
+                      isExpense ? styles.expense : styles.income,
+                    ]}
+                  >
                     {(item.money || 0).toLocaleString()}đ
                   </Text>
                 </View>
@@ -159,7 +179,12 @@ export default function CategoryDetail() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
   title: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
-  chartWrap: { height: 220, justifyContent: "center", alignItems: "center", marginBottom: 12 },
+  chartWrap: {
+    height: 220,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   noDataText: { color: "#888" },
   txRow: {
     padding: 12,
