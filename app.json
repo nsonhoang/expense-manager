@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "expense-manager",
+    "name": "Quản Lý Chi Tiêu",
     "slug": "expense-manager",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/iconqlct.png",
     "scheme": "expensemanager",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,12 +14,6 @@
     },
     "android": {
       "googleServicesFile": "./google-services.json",
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.hoangshpy.expensemanager"
@@ -49,6 +43,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "847257d9-9809-4937-811e-eed9f5aa9c74"
+      }
     }
   }
 }
