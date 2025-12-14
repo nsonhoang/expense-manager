@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: TextSize.TEXT_DEFAULT,
-    backgroundColor: "#e0f7fa",
+    backgroundColor: "#3c3c3cff",
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
