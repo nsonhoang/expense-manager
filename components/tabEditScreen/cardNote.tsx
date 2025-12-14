@@ -13,6 +13,7 @@ function CardNote({ note, updateNote }: CardNoteProps) {
       <TextInput
         style={styles.input}
         placeholder="Thêm ghi chú"
+        placeholderTextColor="#999"  
         value={note}
         onChangeText={updateNote}
       />
@@ -38,7 +39,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: TextSize.TEXT_DEFAULT,
-    backgroundColor: "#3c3c3cff",
+    backgroundColor: "#e0f7fa",
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
