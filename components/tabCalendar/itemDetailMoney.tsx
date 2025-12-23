@@ -72,7 +72,7 @@ function ItemDetailMoney({ item }: ItemDetailMoneyProps) {
         <MaterialCommunityIcons
           name="cash-multiple"
           size={30}
-          color={item.isExpense ? Color.PRIMARY_COLOR : "#d9534f"}
+          color={item.isExpense ? "#d9534f" : Color.PRIMARY_COLOR}
         />
         <View style={styles.detail}>
           <Text style={styles.detailCategory}>{item.category}</Text>
