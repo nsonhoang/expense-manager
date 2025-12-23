@@ -182,56 +182,56 @@ export default function HomeScreen() {
           {activeTab === "expense" ? (
             <View style={styles.tabScreen}>
               <ScrollView>
-              <View>
-                <CalendarButton date={date} updateDate={setDate} />
-                <CardNote note={note} updateNote={setNote} />
-                <CardValueMoney money={money} updateMoney={setMoney} />
-                <CardCategoryItem onSelectCategory={setCateGory} />
-              </View>
-              <View>
-                <TouchableOpacity
-                  style={styles.buttonConfirm}
-                  onPress={() =>
-                    handleAddExpense({
-                      date,
-                      note,
-                      money,
-                      category,
-                      isExpense: true,
-                    })
-                  }
-                >
-                  <Text style={styles.textButton}>Nhập khoản tiền chi</Text>
-                </TouchableOpacity>
-              </View>
-              {/* Input tiền, ngày tháng... */}
+                <View>
+                  <CalendarButton date={date} updateDate={setDate} />
+                  <CardNote note={note} updateNote={setNote} />
+                  <CardValueMoney money={money} updateMoney={setMoney} />
+                  <CardCategoryItem onSelectCategory={setCateGory} />
+                </View>
+                <View>
+                  <TouchableOpacity
+                    style={styles.buttonConfirm}
+                    onPress={() =>
+                      handleAddExpense({
+                        date,
+                        note,
+                        money,
+                        category,
+                        isExpense: true,
+                      })
+                    }
+                  >
+                    <Text style={styles.textButton}>Nhập khoản tiền chi</Text>
+                  </TouchableOpacity>
+                </View>
+                {/* Input tiền, ngày tháng... */}
               </ScrollView>
             </View>
           ) : (
             <View style={styles.tabScreen}>
               <ScrollView>
-              <View>
-                <CalendarButton date={date} updateDate={setDate} />
-                <CardNote note={note} updateNote={setNote} />
-                <CardValueMoney money={money} updateMoney={setMoney} />
-                <CardCategoryIncomeItem onSelectCategory={setCateGory} />
-              </View>
-              <View>
-                <TouchableOpacity
-                  style={styles.buttonConfirm}
-                  onPress={() =>
-                    handleAddIncome({
-                      date,
-                      note,
-                      money,
-                      category,
-                      isExpense: false,
-                    })
-                  }
-                >
-                  <Text style={styles.textButton}>Nhập khoản tiền Thu</Text>
-                </TouchableOpacity>
-              </View>
+                <View>
+                  <CalendarButton date={date} updateDate={setDate} />
+                  <CardNote note={note} updateNote={setNote} />
+                  <CardValueMoney money={money} updateMoney={setMoney} />
+                  <CardCategoryIncomeItem onSelectCategory={setCateGory} />
+                </View>
+                <View>
+                  <TouchableOpacity
+                    style={styles.buttonConfirm}
+                    onPress={() =>
+                      handleAddIncome({
+                        date,
+                        note,
+                        money,
+                        category,
+                        isExpense: false,
+                      })
+                    }
+                  >
+                    <Text style={styles.textButton}>Nhập khoản tiền Thu</Text>
+                  </TouchableOpacity>
+                </View>
               </ScrollView>
             </View>
           )}
@@ -281,6 +281,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Color.PRIMARY_COLOR,
     paddingVertical: 15,
+    marginTop: 10,
     borderRadius: 20,
   },
   textButton: {
