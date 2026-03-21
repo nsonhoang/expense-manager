@@ -1,19 +1,16 @@
 import { categoryIcons } from "@/constants/categoryIcons";
-import { useSession } from "@/context/ctx";
+import { RootState } from "@/store/store";
 import { formatMoney } from "@/utils/formatMoney";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  collection, FirebaseFirestoreTypes, getFirestore,
+  collection,
+  FirebaseFirestoreTypes,
+  getFirestore,
   onSnapshot,
   orderBy,
-  query
+  query,
 } from "@react-native-firebase/firestore";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -23,6 +20,7 @@ import {
 } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 const COLORS = [
   "#FF7043",
@@ -43,45 +41,37 @@ interface Transaction {
 }
 
 const ReportScreen = () => {
-  const { user } = useSession();
+  const user = useSelector((state: RootState) => state.user.user);
 
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [allTrans, setAllTrans] = useState<Transaction[]>([]);
   const [selectedTab, setSelectedTab] = useState<"expense" | "income">(
-    "expense"
+    "expense",
   );
 
   // ---------------- FIREBASE LISTENER ----------------
   useEffect(() => {
     if (!user) return;
 
-    const ref = collection(
-      getFirestore(),
-      "User",
-      user.uid,
-      "Transactions"
-    );
+    const ref = collection(getFirestore(), "User", user.uid, "Transactions");
 
-    const unsub = onSnapshot(
-      query(ref, orderBy("date", "desc")),
-      (snap) => {
-        setAllTrans(
-          snap.docs.map((doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
-            const d = doc.data();
-            return {
-              id: doc.id,
-              money: d.money || 0,
-              note: d.note || "",
-              category: d.category || "Khác",
-              isExpense: d.isExpense ?? true,
-              date: d.date.toDate(),
-            };
-          })
-        );
-      }
-    );
+    const unsub = onSnapshot(query(ref, orderBy("date", "desc")), (snap) => {
+      setAllTrans(
+        snap.docs.map((doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            money: d.money || 0,
+            note: d.note || "",
+            category: d.category || "Khác",
+            isExpense: d.isExpense ?? true,
+            date: d.date.toDate(),
+          };
+        }),
+      );
+    });
 
     return unsub;
   }, [user]);
@@ -103,19 +93,13 @@ const ReportScreen = () => {
       setMonth(m);
       setYear(y);
     },
-    [month, year]
+    [month, year],
   );
 
-  const {
-    totalExpense,
-    totalIncome,
-    dataToShow,
-    pieData,
-  } = useMemo(() => {
+  const { totalExpense, totalIncome, dataToShow, pieData } = useMemo(() => {
     const dataMonth = allTrans.filter(
       (item) =>
-        item.date.getMonth() + 1 === month &&
-        item.date.getFullYear() === year
+        item.date.getMonth() + 1 === month && item.date.getFullYear() === year,
     );
 
     const totalExpense = dataMonth
@@ -153,8 +137,7 @@ const ReportScreen = () => {
     const expenses = calcPercent(group(true));
     const incomes = calcPercent(group(false));
 
-    const dataToShow =
-      selectedTab === "expense" ? expenses : incomes;
+    const dataToShow = selectedTab === "expense" ? expenses : incomes;
 
     const pieData = dataToShow.map((i) => ({
       value: i.value,
@@ -224,9 +207,7 @@ const ReportScreen = () => {
             <Text
               style={[
                 styles.tabText,
-                selectedTab === tab
-                  ? styles.tabActive
-                  : styles.tabInactive,
+                selectedTab === tab ? styles.tabActive : styles.tabInactive,
               ]}
             >
               {tab === "expense" ? "Chi tiêu" : "Thu nhập"}
@@ -259,9 +240,7 @@ const ReportScreen = () => {
       <FlatList
         data={dataToShow}
         keyExtractor={(item) => item.label}
-        ItemSeparatorComponent={() => (
-          <View style={styles.separator} />
-        )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
           <View style={styles.itemRow}>
             <View style={styles.itemLeft}>
@@ -275,12 +254,8 @@ const ReportScreen = () => {
 
             <View style={styles.itemRight}>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.itemValue}>
-                  {formatMoney(item.value)}
-                </Text>
-                <Text style={styles.itemPercent}>
-                  {item.percent}%
-                </Text>
+                <Text style={styles.itemValue}>{formatMoney(item.value)}</Text>
+                <Text style={styles.itemPercent}>{item.percent}%</Text>
               </View>
               {/* <Ionicons
                 name="chevron-forward"

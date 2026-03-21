@@ -1,3 +1,4 @@
+import { setUser } from "@/features/user/userSlice";
 import {
   FirebaseAuthTypes,
   signOut as firebaseSignOut,
@@ -19,21 +20,21 @@ import React, {
   createContext,
   useContext,
   useEffect,
-  useState,
   type PropsWithChildren,
 } from "react";
+import { useDispatch } from "react-redux";
 
 // Định nghĩa các hàm và biến mà Context cung cấp
 type AuthContextType = {
-  user: FirebaseAuthTypes.User | null;
-  isLoading: boolean;
+  // user: FirebaseAuthTypes.User | null;
+  // isLoading: boolean;
   signInWithGoogle: () => Promise<void>; // Hàm đăng nhập Google mới
   signOut: () => void;
 };
 
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isLoading: true,
+  // user: null,
+  // isLoading: true,
   signInWithGoogle: async () => {},
   signOut: () => null,
 });
@@ -47,8 +48,8 @@ export function useSession() {
 }
 
 export function SessionProvider({ children }: PropsWithChildren) {
-  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const dispatch = useDispatch();
+
   const auth = getAuth();
 
   // 1. Cấu hình Google Sign-in ngay khi App khởi động
@@ -62,8 +63,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
   // 2. Lắng nghe trạng thái đăng nhập từ Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (isLoading) setIsLoading(false);
+      dispatch(setUser(currentUser));
+      // setUser(currentUser);
     });
     return unsubscribe;
   }, []);
@@ -71,7 +72,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const saveUserToFirestore = async (user: FirebaseAuthTypes.User) => {
     if (!user?.uid) return;
     const db = getFirestore();
-    // 1. Tạo tham chiếu (Modular style)
+
     const userRef = doc(db, "User", user.uid);
     try {
       const userSnapshot = await getDoc(userRef);
@@ -152,8 +153,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
   return (
     <AuthContext.Provider
       value={{
-        user,
-        isLoading,
+        // user,
+        // isLoading,
         signInWithGoogle,
         signOut,
       }}

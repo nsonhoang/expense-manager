@@ -4,7 +4,7 @@ import CardNote from "@/components/tabEditScreen/cardNote";
 import CalendarButton from "@/components/tabEditScreen/cardTimeItem";
 import CardValueMoney from "@/components/tabEditScreen/cardValueMoney";
 import { Color, TextSize } from "@/constants/GlobalValue";
-import { useSession } from "@/context/ctx";
+import { RootState } from "@/store/store";
 import {
   addDoc,
   collection,
@@ -21,6 +21,7 @@ import {
   View,
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+import { useSelector } from "react-redux";
 
 export interface FormInput {
   date: Date;
@@ -31,14 +32,13 @@ export interface FormInput {
 }
 
 export default function HomeScreen() {
+  const user = useSelector((state: RootState) => state.user.user);
   const [date, setDate] = useState(new Date());
   const [note, setNote] = useState("");
   const [money, setMoney] = useState(0);
   const [category, setCateGory] = useState("");
   const [activeTab, setActiveTab] = useState("expense"); // 'expense' (Chi tiêu) hoặc 'income' (Thu nhập)
   // const [isExpense, setIsExpense] = useState(false);
-
-  const { user } = useSession();
 
   // console.log(user);
   const handleChooseTabExpense = async () => {
@@ -75,7 +75,7 @@ export default function HomeScreen() {
         db,
         "User",
         user?.uid,
-        "Transactions"
+        "Transactions",
       );
       await addDoc(transCollectionRef, {
         date: date,
@@ -119,7 +119,7 @@ export default function HomeScreen() {
         db,
         "User",
         user?.uid,
-        "Transactions"
+        "Transactions",
       );
       await addDoc(transCollectionRef, {
         date: date,

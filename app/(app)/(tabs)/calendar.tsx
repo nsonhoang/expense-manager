@@ -1,87 +1,86 @@
 import CalendarWithDot from "@/components/tabCalendar/CalendarWithDot";
 import DetailMoney from "@/components/tabCalendar/detailMoney";
 import { mockFormInputs } from "@/constants/mockValue";
-import { useSession } from "@/context/ctx";
+import { fetchTransactions } from "@/features/transaction/transactionSlice";
+
+import { RootState, useAppDispatch } from "@/store/store";
 import { formatMoney } from "@/utils/formatMoney";
 import { getTransactionsByMonth } from "@/utils/getTransactionsByMonth";
-import {
-  collection,
-  FirebaseFirestoreTypes,
-  getFirestore,
-  onSnapshot,
-  orderBy,
-  query,
-} from "@react-native-firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-
-export interface Transaction {
-  id: string;
-  date: Date;
-  note?: string;
-  money: number;
-  category: string;
-  isExpense: boolean;
-}
+import { useSelector } from "react-redux";
 
 export default function CalendarScreen() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const transactions = useSelector(
+    (state: RootState) => state.transactions.items,
+  );
+  const loading = useSelector((state: RootState) => state.transactions.loading);
+  const user = useSelector((state: RootState) => state.user.user);
+  // const [transactions, setTransactions] = useState<Transaction[]>([]); //cái này không cần
+  // const [loading, setLoading] = useState(true);  //cái này cũng không cần
   const today = new Date().toISOString().split("T")[0];
   const [selected, setSelected] = useState(today);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
-  const { user } = useSession();
+  const dispatch = useAppDispatch();
+  // const { user } = useSession(); //cái này không cần
   // lấy danh sách giao dịch của tháng đó
 
   useEffect(() => {
     if (!user) {
-      setTransactions([]);
-      setLoading(false);
+      // setTransactions([]);
+      // setLoading(false);
+
+      //lấy dữ liệu ở
+      //đầu tiền là lấy  dữ liệu ở global state
+
       return;
     }
-    const db = getFirestore();
-    const transRef = collection(db, "User", user.uid, "Transactions");
+    dispatch(fetchTransactions(user.uid));
+    // const db = getFirestore();
+    // const transRef = collection(db, "User", user.uid, "Transactions");
 
-    // Sắp xếp theo ngày giảm dần
-    const q = query(transRef, orderBy("date", "desc"));
+    // // Sắp xếp theo ngày giảm dần
+    // const q = query(transRef, orderBy("date", "desc"));
 
-    const unsubscribe = onSnapshot(
-      q,
-      (querySnapshot) => {
-        const list: Transaction[] = [];
+    // const unsubscribe = onSnapshot(
+    //   q,
+    //   (querySnapshot) => {
+    //     const list: Transaction[] = [];
 
-        querySnapshot.forEach(
-          (doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
-            const data = doc.data();
+    //     querySnapshot.forEach(
+    //       (doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
+    //         const data = doc.data();
 
-            // Firestore trả về Timestamp, cần convert sang Date
-            let dateObj = data.date.toDate();
-            console.log("ngayf" + dateObj);
+    //         // Firestore trả về Timestamp, cần convert sang Date
+    //         let dateObj = data.date.toDate();
+    //         console.log("ngayf" + dateObj);
 
-            list.push({
-              id: doc.id,
-              money: data.money || 0,
-              note: data.note || "",
-              category: data.category || "Khác",
-              isExpense: data.isExpense ?? true,
-              date: dateObj, // Dùng ngày thực tế từ DB
-            });
-          }
-        );
+    //         list.push({
+    //           id: doc.id,
+    //           money: data.money || 0,
+    //           note: data.note || "",
+    //           category: data.category || "Khác",
+    //           isExpense: data.isExpense ?? true,
+    //           date: dateObj, // Dùng ngày thực tế từ DB
+    //         });
+    //       },
+    //     );
 
-        setTransactions(list); // Lưu dữ liệu thật vào State
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Lỗi lấy danh sách:", error);
-        setLoading(false);
-      }
-    );
+    //     setTransactions(list); // Lưu dữ liệu thật vào State
+    //     setLoading(false);
+    //   },
+    //   (error) => {
+    //     console.error("Lỗi lấy danh sách:", error);
+    //     setLoading(false);
+    //   },
+    // );
 
-    return () => unsubscribe();
+    // return () => unsubscribe();
   }, [user]); // Thêm dependency user
-  console.log("alo: " + transactions);
+  transactions.forEach((item) => {
+    console.log("alo: " + item);
+  });
 
   const dataMonth = getTransactionsByMonth(transactions, month, year);
 
@@ -101,7 +100,7 @@ export default function CalendarScreen() {
   }, [dataMonth]);
 
   const selectedItems = mockFormInputs.filter(
-    (item) => item.date.toISOString().split("T")[0] === selected
+    (item) => item.date.toISOString().split("T")[0] === selected,
   );
   console.log(selectedItems);
   console.log("Tháng mới:", month, "Năm:", year);
@@ -151,8 +150,8 @@ export default function CalendarScreen() {
                 total > 0
                   ? styles.totalPositive
                   : total < 0
-                  ? styles.totalNegative
-                  : styles.totalZero,
+                    ? styles.totalNegative
+                    : styles.totalZero,
               ]}
             >
               {formatMoney(total)}

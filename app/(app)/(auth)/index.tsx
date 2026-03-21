@@ -26,7 +26,7 @@ const LoginScreen = () => {
     if (user) {
       router.replace("../(tabs)");
     }
-  }, [user]); // <--- Dependency array quan trọng
+  }, [user]); //  Dependency array quan trọng
 
   const handleLogin = async () => {
     if (isSigningIn) return; // Chặn bấm liên tục
@@ -46,7 +46,6 @@ const LoginScreen = () => {
       setIsSigningIn(false);
     }
   };
-
   return (
     <View style={styles.container}>
       <Image source={require("../../../assets/images/logo_cat.png")} />

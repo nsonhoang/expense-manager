@@ -1,12 +1,13 @@
-import { Transaction } from "@/app/(app)/(tabs)/calendar";
 import { Color, TextSize } from "@/constants/GlobalValue";
-import { useSession } from "@/context/ctx";
+import { Transaction } from "@/features/transaction/transactionTypes";
+import { RootState } from "@/store/store";
 import { formatMoney } from "@/utils/formatMoney";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { deleteDoc, doc, getFirestore } from "@react-native-firebase/firestore";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import { useSelector } from "react-redux";
+import { CategoryIcon } from "../categoryIcons";
 import RightAction from "./ReanimatedSwipeable";
 import EditTransactionModal from "./dialogEdit";
 
@@ -16,7 +17,7 @@ interface ItemDetailMoneyProps {
 
 function ItemDetailMoney({ item }: ItemDetailMoneyProps) {
   const [visibleDialogEdit, setVisibleDialogEdit] = useState(false);
-  const { user } = useSession();
+  const user = useSelector((state: RootState) => state.user.user);
 
   const handlerDelete = () => {
     Alert.alert("Xác nhận", "Bạn có chắc muốn xóa :)))", [
@@ -69,11 +70,7 @@ function ItemDetailMoney({ item }: ItemDetailMoneyProps) {
         item={item}
       />
       <View style={styles.containerDetail}>
-        <MaterialCommunityIcons
-          name="cash-multiple"
-          size={30}
-          color={item.isExpense ? "#d9534f" : Color.PRIMARY_COLOR}
-        />
+        <CategoryIcon category={item.category} size={28} />
         <View style={styles.detail}>
           <Text style={styles.detailCategory}>{item.category}</Text>
           <Text style={styles.detailNote}>{item.note}</Text>

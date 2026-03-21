@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { CATEGORIES } from "../categoryIcons";
 import AddCategoryModal from "./dialogAddCategory";
 
 // Định nghĩa kiểu dữ liệu cho danh mục
@@ -28,94 +29,6 @@ interface CategoryGridProps {
   initialSelectedId?: string;
   onSelectCategory?: (category: string) => void;
 }
-
-const CATEGORIES: CategoryItem[] = [
-  {
-    id: "1",
-    name: "Ăn uống",
-    icon: "silverware-fork-knife",
-    library: "MaterialCommunityIcons",
-    color: "#ff9800",
-  },
-  {
-    id: "2",
-    name: "Chi tiêu hàng",
-    icon: "bottle-tonic-outline",
-    library: "MaterialCommunityIcons",
-    color: "#4caf50",
-  },
-  {
-    id: "3",
-    name: "Quần áo",
-    icon: "tshirt-v-outline",
-    library: "MaterialCommunityIcons",
-    color: "#3f51b5",
-  },
-  {
-    id: "4",
-    name: "Mỹ phẩm",
-    icon: "lipstick",
-    library: "MaterialCommunityIcons",
-    color: "#e91e63",
-  },
-  {
-    id: "5",
-    name: "Phí giao lưu",
-    icon: "glass-cheers",
-    library: "FontAwesome5",
-    color: "#ffc107",
-  },
-  {
-    id: "6",
-    name: "Y tế",
-    icon: "pill",
-    library: "MaterialCommunityIcons",
-    color: "#009688",
-  },
-  {
-    id: "7",
-    name: "Giáo dục",
-    icon: "notebook-edit-outline",
-    library: "MaterialCommunityIcons",
-    color: "#f44336",
-  },
-  {
-    id: "8",
-    name: "Tiền điện",
-    icon: "water-outline",
-    library: "MaterialCommunityIcons",
-    color: "#03a9f4",
-  }, // Trong ảnh text là điện nhưng icon là nước
-  {
-    id: "9",
-    name: "Đi lại",
-    icon: "train",
-    library: "MaterialCommunityIcons",
-    color: "#795548",
-  },
-  {
-    id: "10",
-    name: "Phí liên lạc",
-    icon: "cellphone",
-    library: "MaterialCommunityIcons",
-    color: "#607d8b",
-  },
-  {
-    id: "11",
-    name: "Tiền nhà",
-    icon: "home-outline",
-    library: "MaterialCommunityIcons",
-    color: "#e91e63",
-  },
-  {
-    id: "12",
-    name: "Chỉnh Sửa",
-    icon: "pencil-outline",
-    library: "MaterialCommunityIcons",
-    color: "#9e9e9e",
-    isEditButton: true,
-  }, // Mục cuối thường màu xám
-];
 
 const STORAGE_KEY = "@category_list_data";
 
