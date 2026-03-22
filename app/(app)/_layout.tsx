@@ -13,7 +13,10 @@ export const unstable_settings = {
 export default function RootLayout() {
   const user = useSelector((state: RootState) => state.user.user);
   const isLoading = useSelector((state: RootState) => state.user.loading);
-
+  const transaction = useSelector(
+    (state: RootState) => state.transactions.items,
+  );
+  console.log("transaction", transaction);
   if (isLoading) {
     // Loading state lần đầu mở app (đang load từ SecureStore)
     return (

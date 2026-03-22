@@ -1,4 +1,6 @@
+import { fetchTransactions } from "@/features/transaction/transactionSlice";
 import { setUser } from "@/features/user/userSlice";
+import { store, useAppDispatch } from "@/store/store";
 import {
   FirebaseAuthTypes,
   signOut as firebaseSignOut,
@@ -40,6 +42,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function useSession() {
+  const dispatch = useAppDispatch();
   const value = useContext(AuthContext);
   if (!value) {
     throw new Error("useSession must be wrapped in a <SessionProvider />");
@@ -134,6 +137,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
       const googleCredential = GoogleAuthProvider.credential(idToken);
       const userCredential = await signInWithCredential(auth, googleCredential);
       // Không cần làm gì thêm, onAuthStateChanged ở trên sẽ tự bắt được user mới
+
+      store.dispatch(fetchTransactions(userCredential.user.uid));
+
       await saveUserToFirestore(userCredential.user);
     } catch (error) {
       console.error("Lỗi đăng nhập Google trong Context:", error);

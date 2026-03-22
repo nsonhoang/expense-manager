@@ -1,25 +1,48 @@
 import { useSession } from "@/context/ctx";
+import { RootState } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Href, router } from "expo-router";
 import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 const reportButtons: { title: string; path: string; icon: IoniconName }[] = [
-  { title: "Báo cáo trong năm", path: "annual-report", icon: "calendar-outline" },
-  { title: "Báo cáo danh mục trong năm", path: "category-annual-report", icon: "grid-outline" },
+  {
+    title: "Báo cáo trong năm",
+    path: "annual-report",
+    icon: "calendar-outline",
+  },
+  {
+    title: "Báo cáo danh mục trong năm",
+    path: "category-annual-report",
+    icon: "grid-outline",
+  },
   { title: "Báo cáo toàn kỳ", path: "all-time-report", icon: "time-outline" },
-  { title: "Báo cáo danh mục toàn kỳ", path: "all-time-category-report", icon: "albums-outline" },
-  { title: "Trợ giúp", path: "helpScreen", icon: "help-circle-outline" },
-  { title: "Thông tin ứng dụng", path: "appInfoScreen", icon: "information-circle-outline" },
+  {
+    title: "Báo cáo danh mục toàn kỳ",
+    path: "all-time-category-report",
+    icon: "albums-outline",
+  },
+  { title: "Trợ giúp", path: "help-screen", icon: "help-circle-outline" },
+  {
+    title: "Thông tin ứng dụng",
+    path: "app-info-screen",
+    icon: "information-circle-outline",
+  },
 ];
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const MoreScreen = () => {
   const { signOut } = useSession();
-  const router = useRouter();
-  const { user } = useSession();
+  const user = useSelector((state: RootState) => state.user.user);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -27,27 +50,29 @@ const MoreScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
-      <Text style={styles.header}>Xin chào, {user?.displayName || "bạn"}!</Text>
-      <View style={styles.section}>
-        {reportButtons.map((item, i) => (
-          <TouchableOpacity
-            key={i}
-            style={styles.button}
-            onPress={() => router.push("/morescreen/" + item.path)}
-          >
-            <View style={styles.row}>
-              <Ionicons name={item.icon} size={22} color="#2A2A2A" />
-              <Text style={styles.buttonText}>{item.title}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-        ))}
-      </View>
+        <Text style={styles.header}>
+          Xin chào, {user?.displayName || "bạn"}!
+        </Text>
+        <View style={styles.section}>
+          {reportButtons.map((item, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.button}
+              onPress={() => router.push(`/morescreen/${item.path}` as Href)}
+            >
+              <View style={styles.row}>
+                <Ionicons name={item.icon} size={22} color="#2A2A2A" />
+                <Text style={styles.buttonText}>{item.title}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
       <TouchableOpacity
         onPress={() => {
           signOut();
-          router.replace("/(auth)");
+          // router.replace("/(auth)");
         }}
         style={styles.logoutBtn}
       >

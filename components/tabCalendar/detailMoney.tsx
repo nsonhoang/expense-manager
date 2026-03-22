@@ -1,6 +1,7 @@
 import { FormInput } from "@/app/(app)/(tabs)";
-import { Transaction } from "@/app/(app)/(tabs)/calendar";
+
 import { Color } from "@/constants/GlobalValue";
+import { Transaction } from "@/features/transaction/transactionTypes";
 import { formatMoney } from "@/utils/formatMoney";
 import { groupTransactionsByDay } from "@/utils/getTransactionsByDate";
 import { StyleSheet, Text, View } from "react-native";

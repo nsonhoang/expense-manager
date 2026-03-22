@@ -1,4 +1,4 @@
-import { categoryIcons } from "@/constants/categoryIcons";
+import { CategoryIcon } from "@/components/categoryIcons";
 import { RootState } from "@/store/store";
 import { formatMoney } from "@/utils/formatMoney";
 import { Ionicons } from "@expo/vector-icons";
@@ -239,16 +239,12 @@ const ReportScreen = () => {
       {/* LIST */}
       <FlatList
         data={dataToShow}
-        keyExtractor={(item) => item.label}
+        keyExtractor={(item) => item.label} // SỬA Ở ĐÂY: Dùng item.label thay vì item.id
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
           <View style={styles.itemRow}>
             <View style={styles.itemLeft}>
-              <Ionicons
-                name={categoryIcons[item.label] || "ellipse"}
-                size={20}
-                color={item.color}
-              />
+              <CategoryIcon category={item.label} size={28} />
               <Text style={styles.itemLabel}>{item.label}</Text>
             </View>
 

@@ -1,4 +1,4 @@
-import { useSession } from "@/context/ctx";
+import { RootState } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
 import {
   collection,
@@ -20,17 +20,23 @@ import {
 } from "react-native";
 import { BarChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 /** Cho phép nhận cả undefined/null để an toàn khi truyền giá trị không chắc */
 const formatVND = (n: number | null | undefined) =>
   typeof n === "number" ? n.toLocaleString("vi-VN") + "đ" : "0đ";
 
-const MonthItem = React.memo(({ month, value }: { month: number; value: number }) => (
-  <View style={styles.monthItem}>
-    <Text style={styles.monthName}>Tháng {month}</Text>
-    <Text style={styles.monthValue}>{formatVND(value)}</Text>
-  </View>
-));
+// eslint-disable-next-line react/display-name
+const MonthItem = React.memo(
+  ({ month, value }: { month: number; value: number }) => {
+    return (
+      <View style={styles.monthItem}>
+        <Text style={styles.monthName}>Tháng {month}</Text>
+        <Text style={styles.monthValue}>{formatVND(value)}</Text>
+      </View>
+    );
+  },
+);
 
 type Transaction = {
   id: string;
@@ -52,11 +58,11 @@ const BAR_GAP = 8;
 const SCALE = 1000;
 
 const AnnualReportScreen = () => {
-  const { user } = useSession();
+  const user = useSelector((state: RootState) => state.user.user);
 
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [activeTab, setActiveTab] = useState<"expense" | "income" | "total">(
-    "expense"
+    "expense",
   );
   const [chartWidth, setChartWidth] = useState(Dimensions.get("window").width);
 
@@ -86,8 +92,8 @@ const AnnualReportScreen = () => {
             d?.date?.toDate && typeof d.date.toDate === "function"
               ? d.date.toDate()
               : d?.date
-              ? new Date(d.date)
-              : new Date();
+                ? new Date(d.date)
+                : new Date();
 
           return {
             id: doc.id,
@@ -106,7 +112,7 @@ const AnnualReportScreen = () => {
         console.error("Firestore onSnapshot error:", err);
         setAllTrans([]);
         setLoading(false);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -139,13 +145,13 @@ const AnnualReportScreen = () => {
       income: monthly.income,
       total: monthly.total,
     }),
-    [monthly]
+    [monthly],
   );
 
   /** Tổng năm cho active tab */
   const totalOfYear = useMemo(
     () => data[activeTab].reduce((s, x) => s + Number(x || 0), 0),
-    [data, activeTab]
+    [data, activeTab],
   );
 
   /** Tính toán chiều rộng cột */
@@ -154,7 +160,7 @@ const AnnualReportScreen = () => {
     const availableWidth = chartWidth - SCREEN_PADDING * 2;
     const barWidth = Math.min(
       48,
-      Math.max(10, (availableWidth - BAR_GAP * (count - 1)) / count)
+      Math.max(10, (availableWidth - BAR_GAP * (count - 1)) / count),
     );
 
     return { barWidth, spacing: BAR_GAP, initialSpacing: 8 };
@@ -166,9 +172,16 @@ const AnnualReportScreen = () => {
       data[activeTab].map((v, i) => ({
         value: Math.round((v || 0) / SCALE),
         label: `${i + 1}`,
-        frontColor: (activeTab === "expense" && v > 0) ? "#FF7043" : (activeTab === "income" && v > 0) ? "#4FC3F7" : (v > 0 ? "#177AD5" : "#e0e0e0"),
+        frontColor:
+          activeTab === "expense" && v > 0
+            ? "#FF7043"
+            : activeTab === "income" && v > 0
+              ? "#4FC3F7"
+              : v > 0
+                ? "#177AD5"
+                : "#e0e0e0",
       })),
-    [data, activeTab]
+    [data, activeTab],
   );
 
   const onChartLayout = useCallback(
@@ -176,7 +189,7 @@ const AnnualReportScreen = () => {
       const w = e.nativeEvent.layout.width;
       if (w && Math.abs(w - chartWidth) > 1) setChartWidth(w);
     },
-    [chartWidth]
+    [chartWidth],
   );
 
   return (

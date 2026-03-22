@@ -1,5 +1,5 @@
 import { categoryIcons } from "@/constants/categoryIcons";
-import { useSession } from "@/context/ctx";
+import { RootState } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
 import {
   collection,
@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 const COLORS = [
   "#FF7043",
@@ -39,44 +40,37 @@ interface Transaction {
 }
 
 const CategoryAnnualReportScreen = () => {
-  const { user } = useSession();
+  const user = useSelector((state: RootState) => state.user.user);
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [selectedTab, setSelectedTab] = useState<"expense" | "income">(
-    "expense"
+    "expense",
   );
+
   const [allTrans, setAllTrans] = useState<Transaction[]>([]);
 
   // ---------------- FIREBASE LISTENER ----------------
   useEffect(() => {
     if (!user) return;
 
-    const ref = collection(
-      getFirestore(),
-      "User",
-      user.uid,
-      "Transactions"
-    );
+    const ref = collection(getFirestore(), "User", user.uid, "Transactions");
 
-    const unsub = onSnapshot(
-      query(ref, orderBy("date", "desc")),
-      (snap) => {
-        setAllTrans(
-          snap.docs.map((doc) => {
-            const d = doc.data();
-            return {
-              id: doc.id,
-              money: d.money || 0,
-              note: d.note || "",
-              category: d.category || "Khác",
-              isExpense: d.isExpense ?? true,
-              date: d.date.toDate(),
-            };
-          })
-        );
-      }
-    );
+    const unsub = onSnapshot(query(ref, orderBy("date", "desc")), (snap) => {
+      setAllTrans(
+        snap.docs.map((doc: { data: () => any; id: any }) => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            money: d.money || 0,
+            note: d.note || "",
+            category: d.category || "Khác",
+            isExpense: d.isExpense ?? true,
+            date: d.date.toDate(),
+          };
+        }),
+      );
+    });
 
     return unsub;
   }, [user]);
@@ -89,7 +83,7 @@ const CategoryAnnualReportScreen = () => {
   // ---------------- TÍNH TOÁN THEO NĂM ----------------
   const { expenses, incomes, dataToShow, pieData } = useMemo(() => {
     const dataYear = allTrans.filter(
-      (item) => item.date.getFullYear() === year
+      (item) => item.date.getFullYear() === year,
     );
 
     const group = (isExpense: boolean) => {
@@ -119,8 +113,7 @@ const CategoryAnnualReportScreen = () => {
     const expenses = calcPercent(group(true));
     const incomes = calcPercent(group(false));
 
-    const dataToShow =
-      selectedTab === "expense" ? expenses : incomes;
+    const dataToShow = selectedTab === "expense" ? expenses : incomes;
 
     const pieData = dataToShow.map((i) => ({
       value: i.value,
@@ -161,10 +154,7 @@ const CategoryAnnualReportScreen = () => {
       <View style={styles.tabContainer}>
         <TouchableOpacity onPress={() => setSelectedTab("expense")}>
           <Text
-            style={[
-              styles.tab,
-              selectedTab === "expense" && styles.tabActive,
-            ]}
+            style={[styles.tab, selectedTab === "expense" && styles.tabActive]}
           >
             Chi tiêu
           </Text>
@@ -172,10 +162,7 @@ const CategoryAnnualReportScreen = () => {
 
         <TouchableOpacity onPress={() => setSelectedTab("income")}>
           <Text
-            style={[
-              styles.tab,
-              selectedTab === "income" && styles.tabActive,
-            ]}
+            style={[styles.tab, selectedTab === "income" && styles.tabActive]}
           >
             Thu nhập
           </Text>
@@ -209,7 +196,7 @@ const CategoryAnnualReportScreen = () => {
           <View style={styles.itemRow}>
             <View style={styles.itemLeft}>
               <Ionicons
-                name={categoryIcons[item.label] || "ellipse"}
+                name={(categoryIcons[item.label] as any) || "ellipse"}
                 size={22}
                 color={item.color}
               />

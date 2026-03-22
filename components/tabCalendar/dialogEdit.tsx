@@ -1,6 +1,7 @@
-import { Transaction } from "@/app/(app)/(tabs)/calendar";
 import { Color, TextSize } from "@/constants/GlobalValue";
-import { useSession } from "@/context/ctx";
+import { editTransaction } from "@/features/transaction/transactionSlice";
+import { Transaction } from "@/features/transaction/transactionTypes";
+import { RootState } from "@/store/store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { doc, getFirestore, updateDoc } from "@react-native-firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -15,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 
 interface EditTransactionModalProps {
   visible: boolean;
@@ -31,7 +33,9 @@ export default function EditTransactionModal({
   const [moneyStr, setMoneyStr] = useState("");
   const [note, setNote] = useState("");
   const [category, setCategory] = useState("");
-  const { user } = useSession();
+  const user = useSelector((state: RootState) => state.user.user);
+
+  const dispatch = useDispatch();
   useEffect(() => {
     if (item) {
       setMoneyStr(item.money.toString());
@@ -61,6 +65,7 @@ export default function EditTransactionModal({
         category: category,
       };
       console.log(updatedItem);
+      dispatch(editTransaction(updatedItem));
 
       const db = getFirestore();
 
@@ -69,7 +74,7 @@ export default function EditTransactionModal({
         "User",
         user.uid,
         "Transactions",
-        item?.id
+        item?.id,
       );
       await updateDoc(TransactionRef, {
         ...updatedItem,

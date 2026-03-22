@@ -75,6 +75,18 @@ const transactionsSlice = createSlice({
     addTransaction: (state, action) => {
       state.items.unshift(action.payload);
     },
+    deleteTransaction: (state, action) => {
+      console.log("Xóa transaction với id: " + action.payload.id);
+      state.items = state.items.filter((item) => item.id !== action.payload);
+    },
+    editTransaction: (state, action) => {
+      const index = state.items.findIndex(
+        (item) => item.id === action.payload.id,
+      );
+      if (index !== -1) {
+        state.items[index] = action.payload;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -95,5 +107,10 @@ const transactionsSlice = createSlice({
   },
 });
 
-export const { setTransactions, addTransaction } = transactionsSlice.actions;
+export const {
+  setTransactions,
+  addTransaction,
+  deleteTransaction,
+  editTransaction,
+} = transactionsSlice.actions;
 export default transactionsSlice.reducer;

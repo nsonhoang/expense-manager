@@ -4,6 +4,7 @@ import CardNote from "@/components/tabEditScreen/cardNote";
 import CalendarButton from "@/components/tabEditScreen/cardTimeItem";
 import CardValueMoney from "@/components/tabEditScreen/cardValueMoney";
 import { Color, TextSize } from "@/constants/GlobalValue";
+import { addTransaction } from "@/features/transaction/transactionSlice";
 import { RootState } from "@/store/store";
 import {
   addDoc,
@@ -21,7 +22,7 @@ import {
   View,
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export interface FormInput {
   date: Date;
@@ -40,6 +41,7 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState("expense"); // 'expense' (Chi tiêu) hoặc 'income' (Thu nhập)
   // const [isExpense, setIsExpense] = useState(false);
 
+  const dispatch = useDispatch();
   // console.log(user);
   const handleChooseTabExpense = async () => {
     setActiveTab("expense");
@@ -50,92 +52,65 @@ export default function HomeScreen() {
     setActiveTab("income");
   };
 
-  const handleAddExpense = async ({
-    date,
-    note,
-    money,
-    category,
-    isExpense,
-  }: FormInput) => {
+  const handleAddTransaction = async () => {
+    // 1. Validation
     if (money === 0) {
-      Alert.alert("Bạn chưa nhập số tiền");
+      Alert.alert("Lỗi", "Bạn chưa nhập số tiền.");
       return;
     }
     if (category === "") {
-      Alert.alert("Bạn chưa chọn danh mục");
+      Alert.alert("Lỗi", "Bạn chưa chọn danh mục.");
       return;
     }
+    if (!user) {
+      Alert.alert("Lỗi", "Bạn chưa đăng nhập.");
+      return;
+    }
+
+    // 2. Chuẩn bị dữ liệu
+    const isExpense = activeTab === "expense";
+    const newTransaction = {
+      // Tạo một ID tạm thời ở client để cập nhật UI ngay lập tức
+      id: new Date().getTime().toString(),
+      date,
+      note,
+      money,
+      category,
+      isExpense,
+    };
+
     try {
-      if (!user) {
-        console.log("Chưa đăng nhập!");
-        return;
-      }
+      // 3. Cập nhật UI ngay lập tức (Optimistic Update)
+      dispatch(addTransaction(newTransaction));
+
+      // 4. Reset form
+      setMoney(0);
+      setNote("");
+      setCateGory(""); // Reset cả category
+      Keyboard.dismiss();
+      Alert.alert("Thành công", "Đã thêm giao dịch mới.");
+
+      // 5. Gửi dữ liệu lên Firestore ở chế độ nền
       const db = getFirestore();
       const transCollectionRef = collection(
         db,
         "User",
-        user?.uid,
+        user.uid,
         "Transactions",
       );
+      // Gửi object không có id tạm thời
       await addDoc(transCollectionRef, {
-        date: date,
-        note: note,
-        money: money,
-        category: category,
-        isExpense: true,
+        date: newTransaction.date,
+        note: newTransaction.note,
+        money: newTransaction.money,
+        category: newTransaction.category,
+        isExpense: newTransaction.isExpense,
       });
-      console.log("thành công");
-      Alert.alert("thành công");
+      console.log("Đồng bộ lên Firestore thành công");
     } catch (error) {
-      console.log("lỗi: " + error);
-    } finally {
-      setActiveTab("expense");
-      setMoney(0);
-      setNote("");
-    }
-  };
-  const handleAddIncome = async ({
-    date,
-    note,
-    money,
-    category,
-    isExpense,
-  }: FormInput) => {
-    if (money === 0) {
-      Alert.alert("Bạn chưa nhập số tiền");
-      return;
-    }
-    if (category === "") {
-      Alert.alert("Bạn chưa chọn danh mục");
-      return;
-    }
-    try {
-      if (!user) {
-        console.log("Chưa đăng nhập!");
-        return;
-      }
-      const db = getFirestore();
-      const transCollectionRef = collection(
-        db,
-        "User",
-        user?.uid,
-        "Transactions",
-      );
-      await addDoc(transCollectionRef, {
-        date: date,
-        note: note,
-        money: money,
-        category: category,
-        isExpense: false,
-      });
-      Alert.alert("thành công");
-      console.log("thành công");
-    } catch (error) {
-      console.log("lỗi: " + error);
-    } finally {
-      setActiveTab("income");
-      setMoney(0);
-      setNote("");
+      console.log("Lỗi khi thêm giao dịch: " + error);
+      Alert.alert("Lỗi", "Không thể thêm giao dịch. Vui lòng thử lại.");
+      // Cần có logic để rollback lại state Redux nếu cần
     }
   };
   return (
@@ -191,15 +166,7 @@ export default function HomeScreen() {
                 <View>
                   <TouchableOpacity
                     style={styles.buttonConfirm}
-                    onPress={() =>
-                      handleAddExpense({
-                        date,
-                        note,
-                        money,
-                        category,
-                        isExpense: true,
-                      })
-                    }
+                    onPress={() => handleAddTransaction()}
                   >
                     <Text style={styles.textButton}>Nhập khoản tiền chi</Text>
                   </TouchableOpacity>
@@ -219,15 +186,7 @@ export default function HomeScreen() {
                 <View>
                   <TouchableOpacity
                     style={styles.buttonConfirm}
-                    onPress={() =>
-                      handleAddIncome({
-                        date,
-                        note,
-                        money,
-                        category,
-                        isExpense: false,
-                      })
-                    }
+                    onPress={() => handleAddTransaction()}
                   >
                     <Text style={styles.textButton}>Nhập khoản tiền Thu</Text>
                   </TouchableOpacity>

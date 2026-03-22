@@ -1,4 +1,4 @@
-import { useSession } from "@/context/ctx";
+import { RootState } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
 import {
   collection,
@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 interface Transaction {
   id: string;
@@ -44,15 +45,16 @@ const Row = ({ label, value }: { label: string; value: number }) => (
 
 export default function AllTimeReportScreen() {
   const router = useRouter();
-  const { user } = useSession();
+  const user = useSelector((state: RootState) => state.user.user);
 
   const [allTrans, setAllTrans] = useState<Transaction[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   // load transactions từ Firestore: User/{uid}/Transactions
   useEffect(() => {
     if (!user) {
-      setAllTrans([]);
+      // setAllTrans([]);
       setLoading(false);
       return;
     }
@@ -64,17 +66,19 @@ export default function AllTimeReportScreen() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const list: Transaction[] = snap.docs.map((doc) => {
-          const d = doc.data() as any;
-          return {
-            id: doc.id,
-            money: d.money || 0,
-            note: d.note || "",
-            category: d.category || "Khác",
-            isExpense: d.isExpense ?? true,
-            date: d.date?.toDate?.() ?? new Date(),
-          } as Transaction;
-        });
+        const list: Transaction[] = snap.docs.map(
+          (doc: { data: () => any; id: any }) => {
+            const d = doc.data() as any;
+            return {
+              id: doc.id,
+              money: d.money || 0,
+              note: d.note || "",
+              category: d.category || "Khác",
+              isExpense: d.isExpense ?? true,
+              date: d.date?.toDate?.() ?? new Date(),
+            } as Transaction;
+          },
+        );
         setAllTrans(list);
         setLoading(false);
       },
@@ -82,7 +86,7 @@ export default function AllTimeReportScreen() {
         console.warn("Firestore onSnapshot error:", err);
         setAllTrans([]);
         setLoading(false);
-      }
+      },
     );
 
     return () => unsub();
@@ -118,11 +122,20 @@ export default function AllTimeReportScreen() {
       </View>
 
       {loading ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ActivityIndicator size="large" color="#333" />
         </View>
       ) : allTrans.length === 0 ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 20,
+          }}
+        >
           <Text style={{ fontSize: 16, color: "#777" }}>Không có dữ liệu</Text>
         </View>
       ) : (

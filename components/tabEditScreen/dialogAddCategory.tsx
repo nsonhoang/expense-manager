@@ -29,21 +29,66 @@ const COLORS = [
 
 // Danh sách Icon để chọn
 const ICONS = [
-  "silverware-fork-knife",
-  "train",
-  "shopping",
-  "pill",
-  "school",
-  "gamepad-variant",
-  "baby-carriage",
-  "cat",
-  "dumbbell",
-  "gift",
-  "airplane",
-  "gas-station",
-  "tools",
-  "tshirt-crew",
-  "glass-cocktail",
+  {
+    id: "1",
+    name: "silverware-fork-knife",
+  },
+  {
+    id: "2",
+    name: "train",
+  },
+  {
+    id: "3",
+    name: "shopping",
+  },
+  {
+    id: "4",
+    name: "pill",
+  },
+  {
+    id: "5",
+    name: "school",
+  },
+  {
+    id: "6",
+    name: "gamepad-variant",
+  },
+  {
+    id: "7",
+    name: "baby-carriage",
+  },
+  {
+    id: "8",
+    name: "cat",
+  },
+  {
+    id: "9",
+    name: "dumbbell",
+  },
+  {
+    id: "10",
+    name: "gift",
+  },
+  {
+    id: "11",
+    name: "airplane",
+  },
+  {
+    id: "12",
+    name: "gas-station",
+  },
+  {
+    id: "13",
+    name: "tools",
+  },
+  {
+    id: "14",
+    name: "tshirt-crew",
+  },
+  {
+    id: "15",
+    name: "glass-cocktail",
+  },
 ];
 
 interface AddCategoryModalProps {
@@ -131,7 +176,7 @@ export default function AddCategoryModal({
             <FlatList
               data={ICONS}
               numColumns={5}
-              keyExtractor={(item) => item}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
@@ -145,7 +190,7 @@ export default function AddCategoryModal({
                   onPress={() => setSelectedIcon(item)}
                 >
                   <MaterialCommunityIcons
-                    name={item as any}
+                    name={item.name as any}
                     size={24}
                     color={selectedIcon === item ? selectedColor : "#666"}
                   />

@@ -2,6 +2,7 @@ import { CategoryItem } from "@/components/tabEditScreen/cardCategoryItem";
 import {
   FontAwesome,
   FontAwesome5,
+  Ionicons,
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import React from "react";
@@ -92,7 +93,50 @@ export const CATEGORIES: CategoryItem[] = [
     library: "MaterialCommunityIcons",
     color: "#9e9e9e",
     isEditButton: true,
-  }, // Mục cuối thường màu xám
+  },
+  {
+    id: "13",
+    name: "Tiền lương",
+    icon: "wallet-outline",
+    library: "Ionicons",
+    color: "#20b2aa",
+  },
+  {
+    id: "14",
+    name: "Tiền phụ cấp",
+    icon: "piggy-bank-outline",
+    library: "MaterialCommunityIcons",
+    color: "#ff9800",
+  },
+  {
+    id: "15",
+    name: "Tiền thưởng",
+    icon: "gift-outline",
+    library: "Ionicons",
+    color: "#f44336",
+  },
+  {
+    id: "16",
+    name: "Thu nhập phụ",
+    icon: "sack-outline",
+    library: "MaterialCommunityIcons",
+    color: "#03a9f4",
+  },
+  {
+    id: "17",
+    name: "Đầu tư",
+    icon: "coins",
+    library: "FontAwesome5",
+    color: "#009688",
+  },
+  {
+    id: "18",
+    name: "Thu nhập tạm",
+    icon: "hand-holding-usd",
+    library: "FontAwesome5",
+    color: "#e91e63",
+  },
+  // Nút edit luôn ở cuối
 ];
 // 2. TẠO MAP ĐỂ TRA CỨU NHANH
 // Map này sẽ chứa thông tin cần thiết để render icon cho mỗi category
@@ -144,6 +188,8 @@ export const CategoryIcon = ({ category, size = 28 }: CategoryIconProps) => {
       return <FontAwesome5 {...props} />;
     case "FontAwesome":
       return <FontAwesome {...props} />;
+    case "Ionicons":
+      return <Ionicons {...props} />;
     default:
       return <FontAwesome name="question-circle" size={size} color="#888" />;
   }

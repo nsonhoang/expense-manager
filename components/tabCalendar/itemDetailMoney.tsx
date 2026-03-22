@@ -1,4 +1,5 @@
 import { Color, TextSize } from "@/constants/GlobalValue";
+import { deleteTransaction } from "@/features/transaction/transactionSlice";
 import { Transaction } from "@/features/transaction/transactionTypes";
 import { RootState } from "@/store/store";
 import { formatMoney } from "@/utils/formatMoney";
@@ -6,7 +7,7 @@ import { deleteDoc, doc, getFirestore } from "@react-native-firebase/firestore";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { CategoryIcon } from "../categoryIcons";
 import RightAction from "./ReanimatedSwipeable";
 import EditTransactionModal from "./dialogEdit";
@@ -18,6 +19,7 @@ interface ItemDetailMoneyProps {
 function ItemDetailMoney({ item }: ItemDetailMoneyProps) {
   const [visibleDialogEdit, setVisibleDialogEdit] = useState(false);
   const user = useSelector((state: RootState) => state.user.user);
+  const dispatch = useDispatch();
 
   const handlerDelete = () => {
     Alert.alert("Xác nhận", "Bạn có chắc muốn xóa :)))", [
@@ -37,6 +39,7 @@ function ItemDetailMoney({ item }: ItemDetailMoneyProps) {
       const db = getFirestore();
       const TransitionRef = doc(db, "User", user.uid, "Transactions", item.id);
       await deleteDoc(TransitionRef);
+      dispatch(deleteTransaction(item.id)); // Cập nhật state sau khi xóa
       console.log("Xóa thành công");
     } catch (error) {
       console.log("không xóa được: " + error);

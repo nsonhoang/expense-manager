@@ -1,5 +1,5 @@
 import { categoryIcons } from "@/constants/categoryIcons";
-import { useSession } from "@/context/ctx";
+import { RootState } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
 import {
   collection,
@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 const COLORS = [
   "#FF7043",
@@ -40,11 +41,11 @@ interface Transaction {
 }
 
 const AllCategoryAnnualReportScreen = () => {
-  const { user } = useSession();
+  const user = useSelector((state: RootState) => state.user.user);
 
   // State: tab hiện tại
   const [selectedTab, setSelectedTab] = useState<"expense" | "income">(
-    "expense"
+    "expense",
   );
 
   const [allTrans, setAllTrans] = useState<Transaction[]>([]);
@@ -65,20 +66,23 @@ const AllCategoryAnnualReportScreen = () => {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const list: Transaction[] = snap.docs.map((doc) => {
-          const d = doc.data() as any;
-          return {
-            id: doc.id,
-            money: d.money || 0,
-            note: d.note || "",
-            category: d.category || "Khác",
-            isExpense: d.isExpense ?? true,
-            // safe convert timestamp -> Date
-            date: d.date && typeof d.date.toDate === "function"
-              ? d.date.toDate()
-              : new Date(),
-          } as Transaction;
-        });
+        const list: Transaction[] = snap.docs.map(
+          (doc: { data: () => any; id: any }) => {
+            const d = doc.data() as any;
+            return {
+              id: doc.id,
+              money: d.money || 0,
+              note: d.note || "",
+              category: d.category || "Khác",
+              isExpense: d.isExpense ?? true,
+              // safe convert timestamp -> Date
+              date:
+                d.date && typeof d.date.toDate === "function"
+                  ? d.date.toDate()
+                  : new Date(),
+            } as Transaction;
+          },
+        );
 
         setAllTrans(list);
         setLoading(false);
@@ -87,7 +91,7 @@ const AllCategoryAnnualReportScreen = () => {
         console.warn("Firestore onSnapshot error:", err);
         setAllTrans([]);
         setLoading(false);
-      }
+      },
     );
 
     return () => unsub();
@@ -116,7 +120,9 @@ const AllCategoryAnnualReportScreen = () => {
       }));
     };
 
-    const calcPercent = (arr: { label: string; value: number; color: string }[]) => {
+    const calcPercent = (
+      arr: { label: string; value: number; color: string }[],
+    ) => {
       const total = arr.reduce((s, i) => s + i.value, 0);
       if (total === 0) {
         return arr.map((i) => ({ ...i, percent: 0 }));
@@ -155,7 +161,9 @@ const AllCategoryAnnualReportScreen = () => {
           <View style={{ width: 26 }} />
         </View>
 
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ActivityIndicator size="large" color="#333" />
         </View>
       </SafeAreaView>
@@ -178,13 +186,17 @@ const AllCategoryAnnualReportScreen = () => {
       {/* TAB */}
       <View style={styles.tabContainer}>
         <TouchableOpacity onPress={() => setSelectedTab("expense")}>
-          <Text style={[styles.tab, selectedTab === "expense" && styles.tabActive]}>
+          <Text
+            style={[styles.tab, selectedTab === "expense" && styles.tabActive]}
+          >
             Chi tiêu
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setSelectedTab("income")}>
-          <Text style={[styles.tab, selectedTab === "income" && styles.tabActive]}>
+          <Text
+            style={[styles.tab, selectedTab === "income" && styles.tabActive]}
+          >
             Thu nhập
           </Text>
         </TouchableOpacity>
@@ -194,7 +206,9 @@ const AllCategoryAnnualReportScreen = () => {
       <View style={styles.chartCard}>
         {dataToShow.length === 0 ? (
           <View style={{ padding: 20, alignItems: "center" }}>
-            <Text style={{ color: "#999", fontSize: 16 }}>Không có dữ liệu</Text>
+            <Text style={{ color: "#999", fontSize: 16 }}>
+              Không có dữ liệu
+            </Text>
           </View>
         ) : (
           <PieChart
@@ -219,7 +233,7 @@ const AllCategoryAnnualReportScreen = () => {
             <View style={styles.itemRow}>
               <View style={styles.itemLeft}>
                 <Ionicons
-                  name={categoryIcons[item.label] || "ellipse"}
+                  name={(categoryIcons[item.label] as any) || "ellipse"}
                   size={22}
                   color={item.color}
                 />
@@ -228,7 +242,9 @@ const AllCategoryAnnualReportScreen = () => {
 
               <View style={styles.itemRight}>
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.itemValue}>{item.value.toLocaleString()}đ</Text>
+                  <Text style={styles.itemValue}>
+                    {item.value.toLocaleString()}đ
+                  </Text>
                   <Text style={styles.itemPercent}>{item.percent}%</Text>
                 </View>
                 {/* <Ionicons name="chevron-forward" size={20} color="#aaa" /> */}
